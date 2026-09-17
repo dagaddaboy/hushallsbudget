@@ -2878,9 +2878,15 @@
 
   function guessColumn(headers, keywords) {
     for (var i = 0; i < headers.length; i++) {
-      var h = headers[i].toLowerCase();
+      var h = headers[i].trim().toLowerCase();
       for (var k = 0; k < keywords.length; k++) {
-        if (h.indexOf(keywords[k]) !== -1) return i;
+        if (h === keywords[k]) return i;
+      }
+    }
+    for (var i2 = 0; i2 < headers.length; i2++) {
+      var h2 = headers[i2].toLowerCase();
+      for (var k2 = 0; k2 < keywords.length; k2++) {
+        if (h2.indexOf(keywords[k2]) !== -1) return i2;
       }
     }
     return -1;
@@ -2928,6 +2934,49 @@
     document.getElementById('srcBank').classList.remove('active');
   });
 
+  function extractExcelTransactions(workbook) {
+    var sheet = workbook.Sheets[workbook.SheetNames[0]];
+    var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, dateNF: 'yyyy-mm-dd', defval: '' });
+
+    function isHeaderRow(row) {
+      var hasDatum = false, hasBelopp = false;
+      row.forEach(function (c) {
+        var s = String(c || '').trim().toLowerCase();
+        if (s === 'datum') hasDatum = true;
+        if (s.indexOf('belopp') !== -1) hasBelopp = true;
+      });
+      return hasDatum && hasBelopp;
+    }
+    function isNoteRow(row) {
+      var first = String(row[0] || '').trim().toLowerCase();
+      return first.indexOf('valutakurs') === 0;
+    }
+    function isStopRow(row) {
+      var allEmpty = row.every(function (c) { return String(c || '').trim() === ''; });
+      if (allEmpty) return true;
+      var first = String(row[0] || '').trim().toLowerCase();
+      if (first.indexOf('totalt') === 0) return true;
+      return false;
+    }
+
+    var headers = null;
+    var dataRows = [];
+    var i = 0;
+    while (i < rows.length) {
+      if (isHeaderRow(rows[i])) {
+        if (!headers) headers = rows[i].map(function (c) { return String(c || '').trim(); });
+        i++;
+        while (i < rows.length && !isHeaderRow(rows[i]) && !isStopRow(rows[i])) {
+          if (!isNoteRow(rows[i])) dataRows.push(rows[i]);
+          i++;
+        }
+      } else {
+        i++;
+      }
+    }
+    return { headers: headers, rows: dataRows };
+  }
+
   document.getElementById('csvFile').addEventListener('change', function (ev) {
     var file = ev.target.files[0];
     if (!file) return;
@@ -2938,9 +2987,14 @@
         try {
           var data = new Uint8Array(e.target.result);
           var wb = XLSX.read(data, { type: 'array', cellDates: true });
-          var sheet = wb.Sheets[wb.SheetNames[0]];
-          var csv = XLSX.utils.sheet_to_csv(sheet, { FS: ';', dateNF: 'yyyy-mm-dd' });
-          document.getElementById('csvText').value = csv;
+          var extracted = extractExcelTransactions(wb);
+          if (!extracted.headers || !extracted.rows.length) {
+            setStatus('Hittade inga transaktionsrader i Excel-filen — kolla att den innehåller kolumner som "Datum" och "Belopp".');
+            return;
+          }
+          document.getElementById('csvText').value = '(Excel-fil inläst: ' + extracted.rows.length + ' rader hittade över flera sektioner)';
+          applyParsedData(extracted);
+          setStatus('Läste in ' + extracted.rows.length + ' rader från Excel-filen.');
         } catch (err) {
           setStatus('Kunde inte läsa Excel-filen: ' + (err && err.message ? err.message : String(err)));
         }
@@ -2962,6 +3016,10 @@
       setStatus('Kunde inte tolka någon data. Kontrollera att CSV-innehåll finns inklistrat.');
       return;
     }
+    applyParsedData(parsed);
+  });
+
+  function applyParsedData(parsed) {
     parsedCsv = parsed;
     var dateGuess = guessColumn(parsed.headers, ['datum', 'date', 'bokf']);
     var amtGuess = guessColumn(parsed.headers, ['belopp', 'amount', 'summa', 'saldo förändring', 'värde']);
@@ -2982,7 +3040,7 @@
 
     document.getElementById('mapSection').style.display = 'block';
     updatePreview();
-  });
+  }
 
   ['mapDate', 'mapAmount', 'mapDesc', 'mapCategory', 'defaultCategory', 'invertSign'].forEach(function (id) {
     document.getElementById(id).addEventListener('change', updatePreview);
