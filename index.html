@@ -1148,7 +1148,7 @@
 <div class="overlay" id="importOverlay" hidden>
   <div class="panel">
     <h2>Importera transaktioner</h2>
-    <div class="hint">Exportera ett kontoutdrag (CSV) från din bank eller ditt kreditkort och klistra in det nedan, eller välj filen direkt.</div>
+    <div class="hint">Exportera ett kontoutdrag (CSV eller Excel) från din bank eller ditt kreditkort och klistra in det nedan, eller välj filen direkt.</div>
 
     <div class="import-source">
       <button type="button" class="active" data-src="bank" id="srcBank">Bankkonto</button>
@@ -1156,7 +1156,7 @@
     </div>
     <input type="text" id="importOwner" placeholder="Vems transaktioner? (t.ex. Henrik eller sambons namn)" maxlength="30" style="width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-size:1rem; margin-bottom:12px;">
 
-    <input type="file" id="csvFile" accept=".csv,.txt">
+    <input type="file" id="csvFile" accept=".csv,.txt,.xlsx,.xls">
     <textarea id="csvText" placeholder="…eller klistra in CSV-innehållet här"></textarea>
     <div class="panel-actions">
       <button type="button" class="btn-secondary" id="closeImport1">Avbryt</button>
@@ -1207,6 +1207,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
   var firebaseConfig = {
     apiKey: "AIzaSyCxCcFbQN68qN469vF3bMMwY6adjDQZpT0",
@@ -2930,11 +2931,28 @@
   document.getElementById('csvFile').addEventListener('change', function (ev) {
     var file = ev.target.files[0];
     if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function (e) {
-      document.getElementById('csvText').value = e.target.result;
-    };
-    reader.readAsText(file, 'utf-8');
+    var isExcel = /\.xlsx$|\.xls$/i.test(file.name);
+    if (isExcel) {
+      var xReader = new FileReader();
+      xReader.onload = function (e) {
+        try {
+          var data = new Uint8Array(e.target.result);
+          var wb = XLSX.read(data, { type: 'array', cellDates: true });
+          var sheet = wb.Sheets[wb.SheetNames[0]];
+          var csv = XLSX.utils.sheet_to_csv(sheet, { FS: ';', dateNF: 'yyyy-mm-dd' });
+          document.getElementById('csvText').value = csv;
+        } catch (err) {
+          setStatus('Kunde inte läsa Excel-filen: ' + (err && err.message ? err.message : String(err)));
+        }
+      };
+      xReader.readAsArrayBuffer(file);
+    } else {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById('csvText').value = e.target.result;
+      };
+      reader.readAsText(file, 'utf-8');
+    }
   });
 
   document.getElementById('parseBtn').addEventListener('click', function () {
