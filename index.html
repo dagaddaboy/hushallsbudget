@@ -639,6 +639,27 @@
     margin-bottom: 16px;
   }
   .report-divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .forecast-caveat {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .forecast-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 0;
+    border-top: 1px solid var(--border);
+    font-size: 0.86rem;
+  }
+  .forecast-row:first-of-type { border-top: none; }
+  .forecast-row .fr-range {
+    font-size: 0.76rem;
+    color: var(--text-dim);
+    margin-left: 6px;
+  }
+  .forecast-row .fr-value { font-weight: 600; font-variant-numeric: tabular-nums; }
 
   /* ---- Section titles ---- */
   .section-title {
@@ -1633,14 +1654,39 @@
     var funFacts = computeFunFacts(range, entries);
     var insight = computeInsight(cur, prev, catTotals, prevCatTotals, prevEntries.length);
     var categorizedPct = cur.expense > 0 ? Math.round(((cur.expense - uncatAmount) / cur.expense) * 100) : null;
+    var forecast = filterPerson ? null : computeForecast();
 
     return {
       range: range, cur: cur, prev: prev, topCats: topCats, biggest: biggest,
       uncatCount: uncatCount, uncatAmount: uncatAmount, categorizedPct: categorizedPct,
       expenseCount: expenseCount, avgExpense: avgExpense,
       savingsRate: savingsRate, recurringCount: recurring.length, recurringTotal: recurringTotal,
-      peopleList: peopleList, funFacts: funFacts, insight: insight
+      peopleList: peopleList, funFacts: funFacts, insight: insight, forecast: forecast
     };
+  }
+
+  function computeForecast() {
+    var monthly = computeMonthlyHistory();
+    var currentKey = monthKey(new Date());
+    var keys = Object.keys(monthly).filter(function (k) { return k !== currentKey; }).sort();
+    if (keys.length > 12) keys = keys.slice(keys.length - 12);
+    var monthsOfData = keys.length;
+    if (monthsOfData === 0) return null;
+
+    var avgIncome = keys.reduce(function (s, k) { return s + monthly[k].income; }, 0) / monthsOfData;
+    var avgExpense = keys.reduce(function (s, k) { return s + monthly[k].expense; }, 0) / monthsOfData;
+    var avgNet = avgIncome - avgExpense;
+    var nets = keys.map(function (k) { return monthly[k].income - monthly[k].expense; });
+    var variance = nets.reduce(function (s, n) { return s + Math.pow(n - avgNet, 2); }, 0) / monthsOfData;
+    var stdDev = Math.sqrt(variance);
+
+    var maturity = monthsOfData < 3 ? 'low' : monthsOfData < 6 ? 'early' : monthsOfData < 12 ? 'ok' : 'full';
+    var projections = [1, 3, 6, 12].map(function (m) {
+      var mid = avgNet * m;
+      var range = stdDev * Math.sqrt(m);
+      return { months: m, mid: mid, low: mid - range, high: mid + range };
+    });
+    return { monthsOfData: monthsOfData, avgIncome: avgIncome, avgExpense: avgExpense, avgNet: avgNet, stdDev: stdDev, maturity: maturity, projections: projections };
   }
 
   function computeInsight(cur, prev, catTotals, prevCatTotals, prevEntryCount) {
@@ -1781,6 +1827,10 @@
       html += '<div class="report-section-title">Fördelning</div><div class="report-people-row" id="reportPeopleRow"></div>';
     }
 
+    if (r.forecast) {
+      html += '<div class="report-divider"></div><div class="report-section-title">🔮 Prognos framåt</div><div id="reportForecast"></div>';
+    }
+
     if (r.funFacts) {
       html += '<div class="report-divider"></div><div class="report-section-title">🎉 Kul fakta</div><div id="reportFunFacts"></div>';
     }
@@ -1805,6 +1855,25 @@
       catPctEl.textContent = r.categorizedPct + '%';
       catPctEl.classList.toggle('expense-text', r.categorizedPct < 80);
       catPctEl.classList.toggle('income-text', r.categorizedPct >= 80);
+    }
+
+    var forecastEl = document.getElementById('reportForecast');
+    if (forecastEl && r.forecast) {
+      var f = r.forecast;
+      var caveats = {
+        low: '⚠ Baserad på bara ' + f.monthsOfData + ' månad' + (f.monthsOfData > 1 ? 'er' : '') + ' data — för tidigt för att lita på, men blir bättre allt eftersom mer historik samlas in.',
+        early: 'Baserad på ' + f.monthsOfData + ' månaders data. Fortfarande tidigt — årsvisa kostnader (besiktning, semester, julklappar) har kanske inte synts än.',
+        ok: 'Baserad på ' + f.monthsOfData + ' månaders data. Ganska stabil, men har inte täckt en hel årscykel än.',
+        full: 'Baserad på en hel årscykel (' + f.monthsOfData + ' månader) — bör fånga upp de flesta återkommande och årsvisa kostnader.'
+      };
+      var html2 = '<div class="forecast-caveat">' + caveats[f.maturity] + '</div>';
+      html2 += '<div class="forecast-caveat">Snitt: ' + fmtMoney(f.avgIncome) + ' in / ' + fmtMoney(f.avgExpense) + ' ut per månad → ' + (f.avgNet >= 0 ? '+' : '') + fmtMoney(f.avgNet) + ' kr/månad om mönstret håller.</div>';
+      f.projections.forEach(function (p) {
+        html2 += '<div class="forecast-row"><span>Om ' + p.months + ' månad' + (p.months > 1 ? 'er' : '') + '</span>' +
+          '<span class="fr-value' + (p.mid < 0 ? ' expense-text' : ' income-text') + '">' + (p.mid >= 0 ? '+' : '') + fmtMoney(p.mid) +
+          '<span class="fr-range">(' + fmtMoney(p.low) + ' till ' + (p.high >= 0 ? '+' : '') + fmtMoney(p.high) + ')</span></span></div>';
+      });
+      forecastEl.innerHTML = html2;
     }
 
     var catLines = panel.querySelectorAll('.report-line');
@@ -1917,7 +1986,7 @@
     return '<div class="hero-curve-wrap">' + svg + '</div>';
   }
 
-  function renderTrendPanel() {
+  function computeMonthlyHistory() {
     var monthly = {};
     allEntries.forEach(function (e) {
       if (filterPerson && (e.addedBy || '') !== filterPerson) return;
@@ -1927,6 +1996,11 @@
       if (e.type === 'income') monthly[key].income += Number(e.amount) || 0;
       else monthly[key].expense += Number(e.amount) || 0;
     });
+    return monthly;
+  }
+
+  function renderTrendPanel() {
+    var monthly = computeMonthlyHistory();
     var keys = Object.keys(monthly).sort();
     if (keys.length > 12) keys = keys.slice(keys.length - 12);
     var panel = document.getElementById('trendPanel');
