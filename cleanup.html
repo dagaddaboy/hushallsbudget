@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rensa gammal data — Hushållsbudget</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; color: #14171C; }
+  h1 { font-size: 1.3rem; }
+  button { background: #1E4FD8; color: white; border: none; border-radius: 10px; padding: 14px 20px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; margin-top: 12px; }
+  button:disabled { background: #999; }
+  button.danger { background: #C0392B; }
+  #log { margin-top: 20px; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; background: #F5F5F7; border-radius: 8px; padding: 12px; }
+  .warn { color: #D8402E; font-weight: 600; }
+  #summary { margin-top: 16px; font-size: 0.95rem; background: #EEF0F3; border-radius: 8px; padding: 14px; }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<h1>🗑 Rensa data äldre än 13 månader</h1>
+<p>Hittar och tar bort alla transaktioner äldre än 13 månader från idag (behåller den senaste hela årscykeln, som behövs för prognosen och återkommande räkningar).</p>
+<p class="warn">Detta går inte att ångra. Kolla igenom sammanfattningen innan du bekräftar.</p>
+<button id="scan">1. Sök upp gammal data</button>
+<div id="summary" style="display:none;"></div>
+<button id="go" class="danger" style="display:none;">2. Ta bort dessa poster</button>
+<div id="log"></div>
+
+<script>
+  var firebaseConfig = {
+    apiKey: "AIzaSyCxCcFbQN68qN469vF3bMMwY6adjDQZpT0",
+    authDomain: "household-budget-73d18.firebaseapp.com",
+    projectId: "household-budget-73d18",
+    storageBucket: "household-budget-73d18.firebasestorage.app",
+    messagingSenderId: "584658488754",
+    appId: "1:584658488754:web:320db8aa97934bebcd68ab"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.firestore();
+
+  var logEl = document.getElementById('log');
+  function log(msg) { logEl.textContent += msg + "\n"; }
+
+  function cutoffISO() {
+    var now = new Date();
+    var cutoff = new Date(now.getFullYear(), now.getMonth() - 13, now.getDate());
+    return cutoff.getFullYear() + '-' + String(cutoff.getMonth() + 1).padStart(2, '0') + '-' + String(cutoff.getDate()).padStart(2, '0');
+  }
+
+  var oldIds = [];
+
+  document.getElementById('scan').addEventListener('click', async function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Söker...';
+    var cutoff = cutoffISO();
+    log('Gränsdatum: allt äldre än ' + cutoff + ' tas bort.');
+    var snap = await db.collection('entries').get();
+    oldIds = [];
+    var totalAmount = 0;
+    var minDate = null, maxDate = null;
+    snap.forEach(function (doc) {
+      var d = doc.data();
+      if (d.date && d.date < cutoff) {
+        oldIds.push(doc.id);
+        totalAmount += Number(d.amount) || 0;
+        if (!minDate || d.date < minDate) minDate = d.date;
+        if (!maxDate || d.date > maxDate) maxDate = d.date;
+      }
+    });
+    btn.textContent = '1. Sök upp gammal data';
+    btn.disabled = false;
+
+    var summaryEl = document.getElementById('summary');
+    if (oldIds.length === 0) {
+      summaryEl.style.display = 'block';
+      summaryEl.textContent = 'Inga poster äldre än ' + cutoff + ' hittades. Inget att rensa.';
+      return;
+    }
+    summaryEl.style.display = 'block';
+    summaryEl.innerHTML = '<strong>' + oldIds.length + ' poster</strong> hittade, från ' + minDate + ' till ' + maxDate + '.<br>Sammanlagt belopp: ' + Math.round(totalAmount).toLocaleString('sv-SE') + ' kr.';
+    document.getElementById('go').style.display = 'block';
+    document.getElementById('go').textContent = '2. Ta bort dessa ' + oldIds.length + ' poster';
+  });
+
+  document.getElementById('go').addEventListener('click', async function () {
+    var btn = this;
+    btn.disabled = true;
+    var CHUNK = 25;
+    var done = 0;
+    for (var i = 0; i < oldIds.length; i += CHUNK) {
+      var chunk = oldIds.slice(i, i + CHUNK);
+      btn.textContent = 'Tar bort... (' + Math.min(i + CHUNK, oldIds.length) + '/' + oldIds.length + ')';
+      await Promise.all(chunk.map(function (id) {
+        return db.collection('entries').doc(id).delete().then(function () { done++; }).catch(function (e) { log('FEL på ' + id + ': ' + e.message); });
+      }));
+    }
+    btn.textContent = 'Klart';
+    log('Klart! ' + done + ' poster borttagna.');
+    log('Gå till huvudappen och kolla att allt ser rätt ut.');
+  });
+</script>
+</body>
+</html>
