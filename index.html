@@ -1050,7 +1050,7 @@
         <button type="button" class="period-btn" data-mode="period">Löneperiod</button>
       </div>
       <div class="payday-row" id="paydayRow" style="display:none;">
-        Lön kommer den <input type="number" id="paydayInput" min="1" max="28" value="25">:e, gäller till nästa lön
+        Ungefärlig lönedag: <input type="number" id="paydayInput" min="1" max="28" value="25">:e (uppskattning tills lönen faktiskt kommit in — då används det riktiga datumet)
       </div>
     </div>
     <div class="hero-figure">
@@ -1334,11 +1334,36 @@
     return fmtDateShort(first) + '–' + fmtDateStrShort(dates[dates.length - 1]);
   }
 
+  function getSalaryDatesByMonth() {
+    var map = {};
+    allEntries.forEach(function (e) {
+      if (e.type !== 'income' || !e.date) return;
+      var d = new Date(e.date + 'T00:00:00');
+      var key = monthKey(d);
+      var amt = Number(e.amount) || 0;
+      if (!map[key] || amt > map[key].amount) {
+        map[key] = { date: d, amount: amt };
+      }
+    });
+    return map;
+  }
+
   function getRangeForMonth(refMonth) {
     var y = refMonth.getFullYear(), m = refMonth.getMonth();
     if (budgetMode === 'period') {
-      var start = new Date(y, m - 1, payday);
-      var end = new Date(y, m, payday - 1);
+      var salaryMap = getSalaryDatesByMonth();
+      var prevKey = monthKey(new Date(y, m - 1, 1));
+      var curKey = monthKey(refMonth);
+      var startSalary = salaryMap[prevKey];
+      var endSalary = salaryMap[curKey];
+      var start = startSalary ? startSalary.date : new Date(y, m - 1, payday);
+      var end;
+      if (endSalary) {
+        end = new Date(endSalary.date);
+        end.setDate(end.getDate() - 1);
+      } else {
+        end = new Date(y, m, payday - 1);
+      }
       return { start: start, end: end };
     }
     return { start: new Date(y, m, 1), end: new Date(y, m + 1, 0) };
