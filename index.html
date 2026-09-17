@@ -1709,7 +1709,7 @@
     var funFacts = computeFunFacts(range, entries);
     var insight = computeInsight(cur, prev, catTotals, prevCatTotals, prevEntries.length);
     var categorizedPct = cur.expense > 0 ? Math.round(((cur.expense - uncatAmount) / cur.expense) * 100) : null;
-    var forecast = filterPerson ? null : computeForecast();
+    var forecast = filterPerson ? null : computeSpendingForecast();
 
     return {
       range: range, cur: cur, prev: prev, topCats: topCats, biggest: biggest,
@@ -1720,7 +1720,7 @@
     };
   }
 
-  function computeForecast() {
+  function computeSpendingForecast() {
     var monthly = computeMonthlyHistory();
     var currentKey = monthKey(new Date());
     var keys = Object.keys(monthly).filter(function (k) { return k !== currentKey; }).sort();
