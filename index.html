@@ -1,0 +1,2872 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hushållsbudget">
+<title>Hushållsbudget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #E7E9ED;
+    --surface: #FFFFFF;
+    --surface-2: #EEF0F3;
+    --border: #D3D7DE;
+    --text: #14171C;
+    --text-dim: #565C66;
+    --accent: #1E4FD8;
+    --accent-soft: #E1E8FC;
+    --income: #148A57;
+    --expense: #D8402E;
+    --expense-soft: #FBE1DD;
+    --shadow: 0 1px 2px rgba(20,23,28,0.04), 0 10px 24px rgba(20,23,28,0.08);
+    --font-display: 'IBM Plex Mono', 'SF Mono', 'Courier New', monospace;
+    --font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101317;
+      --surface: #181C22;
+      --surface-2: #1F242B;
+      --border: #313842;
+      --text: #E9EBEE;
+      --text-dim: #8B929C;
+      --accent: #5B87FF;
+      --accent-soft: #1C2A4D;
+      --income: #3FBE86;
+      --expense: #F17A63;
+      --expense-soft: #3A241F;
+      --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 10px 26px rgba(0,0,0,0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101317;
+    --surface: #181C22;
+    --surface-2: #1F242B;
+    --border: #313842;
+    --text: #E9EBEE;
+    --text-dim: #8B929C;
+    --accent: #5B87FF;
+    --accent-soft: #1C2A4D;
+    --income: #3FBE86;
+    --expense: #F17A63;
+    --expense-soft: #3A241F;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 10px 26px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 18px 16px calc(64px + env(safe-area-inset-bottom));
+  }
+
+  /* ---- Top label ---- */
+  .topbar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding: 0 2px;
+  }
+  .topbar-title {
+    font-size: 0.98rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  .topbar-sub {
+    font-size: 0.83rem;
+    color: var(--text-dim);
+  }
+
+  /* ---- Hero ---- */
+  .hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 20px 18px 18px;
+    margin-bottom: 18px;
+  }
+  .hero-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .hero-nav-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 999px;
+    width: 38px;
+    height: 38px;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .hero-nav-btn:active { background: var(--surface-2); }
+  .hero-month {
+    font-size: 0.93rem;
+    font-weight: 600;
+    min-width: 130px;
+    text-align: center;
+    text-transform: capitalize;
+    color: var(--text-dim);
+  }
+  .hero-figure {
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .hero-figure-label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+  }
+  .hero-figure-value {
+    font-family: var(--font-display);
+    font-size: clamp(1.7rem, 11vw, 2.2rem);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    color: var(--text);
+  }
+  .hero-figure-value.neg { color: var(--expense); }
+  .hero-figure-value.pos { color: var(--income); }
+  .hero-stats {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  .hero-stat {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    justify-content: center;
+  }
+  .hero-stat-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .hero-stat-dot.income-dot { background: var(--income); }
+  .hero-stat-dot.expense-dot { background: var(--expense); }
+  .hero-stat-label {
+    font-size: 0.83rem;
+    color: var(--text-dim);
+  }
+  .hero-stat-value {
+    font-size: 0.97rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-stat-value.income-text { color: var(--income); }
+  .hero-stat-value.expense-text { color: var(--expense); }
+  .hero-stat-divider {
+    width: 1px;
+    align-self: stretch;
+    background: var(--border);
+  }
+  .hero-mode-link {
+    display: block;
+    margin: 0 auto 14px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 0.83rem;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: center;
+  }
+  .hero-mode-link:hover { color: var(--text); }
+  .mode-settings {
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .period-toggle {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 3px;
+    margin-bottom: 10px;
+  }
+  .period-btn {
+    flex: 1;
+    padding: 6px 4px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 0.83rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .period-btn.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .payday-row {
+    text-align: center;
+    font-size: 0.83rem;
+    color: var(--text-dim);
+    margin-bottom: 0;
+  }
+  .payday-row input {
+    width: 44px;
+    padding: 3px 4px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 0.9rem;
+    text-align: center;
+    font-family: inherit;
+  }
+  .hero-forecast {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .forecast-line {
+    font-size: 0.89rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .forecast-line strong {
+    color: var(--text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .forecast-line.neg strong { color: var(--expense); }
+  .forecast-line.ok { color: var(--income); cursor: default; }
+  .forecast-chevron { font-size: 0.77rem; }
+  .forecast-detail {
+    margin: 8px auto 0;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border-radius: 12px;
+    text-align: left;
+  }
+  .forecast-detail-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .forecast-detail-item span:last-child { color: var(--expense); font-weight: 600; white-space: nowrap; }
+
+  .hero-curve-wrap {
+    margin-bottom: 14px;
+  }
+  .hero-figure, .hero-stats, #heroBars, #heroForecast {
+    transition: opacity 0.15s ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-figure, .hero-stats, #heroBars, #heroForecast { transition: none; }
+  }
+
+  /* legacy card/value hooks kept for any residual references */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); }
+  .card .label { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 4px; }
+  .card .value { font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .card.income .value { color: var(--income); }
+  .card.expense .value { color: var(--expense); }
+
+  /* ---- Add form ---- */
+  form.add {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .toggle-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .toggle-row button {
+    flex: 1;
+    padding: 8px 0;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .toggle-row button.active[data-type="income"] {
+    background: var(--surface);
+    color: var(--income);
+    box-shadow: var(--shadow);
+  }
+  .toggle-row button.active[data-type="expense"] {
+    background: var(--surface);
+    color: var(--expense);
+    box-shadow: var(--shadow);
+  }
+  .field-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .field-row input, .field-row select {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 11px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  .field-row input:focus, .field-row select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+  .whoami {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 0.87rem;
+    color: var(--text-dim);
+  }
+  .whoami input {
+    padding: 7px 9px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 1rem;
+    width: 130px;
+    font-family: inherit;
+  }
+  .submit-btn {
+    width: 100%;
+    padding: 12px 0;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: var(--surface);
+    font-weight: 600;
+    font-size: 0.99rem;
+    cursor: pointer;
+    margin-top: 2px;
+    font-family: inherit;
+  }
+  .submit-btn:active { opacity: 0.85; }
+
+  /* ---- Toolbar row (import / trend / recurring) ---- */
+  .toolbar-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .toolbar-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 10px 2px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 0.74rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .toolbar-icon { font-size: 1.05rem; line-height: 1; }
+  .toolbar-btn.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .import-status {
+    text-align: center;
+    font-size: 0.83rem;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .import-status.ok { color: var(--income); }
+  .import-status.warn { color: #b8862f; }
+  .import-status.stale { color: var(--expense); font-weight: 600; }
+
+  .confetti-piece {
+    position: fixed;
+    top: -12px;
+    width: 8px;
+    height: 14px;
+    opacity: 0.9;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 300;
+    animation: confetti-fall 1.4s ease-in forwards;
+  }
+  @keyframes confetti-fall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(540deg); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .confetti-piece { display: none; }
+  }
+  .celebrate-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--accent);
+    color: var(--surface);
+    padding: 12px 20px;
+    border-radius: 999px;
+    font-size: 0.93rem;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    z-index: 301;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    max-width: 88vw;
+    text-align: center;
+  }
+  .celebrate-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .control-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+  .search-row { margin-bottom: 10px; }
+  .search-row input {
+    width: 100%;
+    padding: 11px 13px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  .search-row input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .filter-row select {
+    flex: 1;
+    min-width: 100px;
+    padding: 8px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+
+  .insight-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .report-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .report-sub {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .report-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .report-stat {
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .report-stat-label {
+    font-size: 0.74rem;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+  }
+  .report-stat-value {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .report-stat-value.income-text { color: var(--income); }
+  .report-stat-value.expense-text { color: var(--expense); }
+  .report-delta {
+    font-size: 0.74rem;
+    margin-top: 2px;
+  }
+  .report-delta.up { color: var(--expense); }
+  .report-delta.down { color: var(--income); }
+  .report-section-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin: 4px 0 8px;
+  }
+  .report-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 0.86rem;
+    padding: 6px 0;
+    border-top: 1px solid var(--border);
+  }
+  .report-line:first-of-type { border-top: none; }
+  .report-line .rl-label { color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .report-line .rl-value { font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; white-space: nowrap; }
+  .report-people-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .report-people-chip {
+    flex: 1;
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+  .report-people-chip strong {
+    display: block;
+    font-size: 0.98rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .report-nag {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .report-insight {
+    background: var(--accent-soft);
+    color: var(--text);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.84rem;
+    line-height: 1.4;
+    margin-bottom: 16px;
+  }
+  .report-divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  /* ---- Section titles ---- */
+  .section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 24px 2px 10px;
+  }
+
+  /* ---- Entry list ---- */
+  .entry-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .entry .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .entry.income .dot { background: var(--income); }
+  .entry.expense .dot { background: var(--expense); }
+  .entry .meta { flex: 1; min-width: 0; }
+  .entry .cat { font-weight: 600; font-size: 0.95rem; }
+  .entry .note { color: var(--text-dim); font-size: 0.86rem; overflow-wrap: anywhere; margin-top: 1px; }
+  .entry .who { color: var(--text); font-size: 0.83rem; margin-top: 1px; font-weight: 500; }
+  .entry .who .who-person { color: var(--text-dim); font-weight: 400; }
+  .entry .amt {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .entry.income .amt { color: var(--income); }
+  .entry.expense .amt { color: var(--expense); }
+  .entry .edit-btn, .entry .del {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 8px 6px;
+    line-height: 1;
+  }
+  .entry .cat-inline-select {
+    font-weight: 600;
+    font-size: 0.89rem;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 4px 6px;
+    max-width: 100%;
+    margin-bottom: 2px;
+    font-family: inherit;
+  }
+  .entry .cat-inline-select.needs-cat {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+  .empty {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.91rem;
+    padding: 26px 0;
+  }
+
+  /* ---- Edit mode ---- */
+  .entry.editing { flex-wrap: wrap; align-items: stretch; }
+  .edit-fields { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+  .edit-fields input {
+    padding: 7px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  .edit-actions { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+  .edit-actions button { border: none; border-radius: 8px; padding: 6px 10px; font-size: 0.95rem; cursor: pointer; font-family: inherit; }
+  .save-edit { background: var(--accent); color: var(--surface); }
+  .cancel-edit { background: var(--surface-2); color: var(--text-dim); }
+  .recur-badge { margin-right: 4px; font-size: 0.85rem; }
+
+  /* ---- Category breakdown ---- */
+  .breakdown { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .bd-row { display: flex; align-items: center; gap: 8px; font-size: 0.91rem; }
+  .bd-cat { width: 122px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); }
+  .bd-bar-track { flex: 1; height: 7px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+  .bd-bar { height: 100%; background: var(--expense); border-radius: 4px; }
+  .bd-amt { width: 84px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+  /* ---- Uncategorized card ---- */
+  .settlement-card {
+    margin-bottom: 18px;
+    border-color: var(--expense);
+    background: var(--expense-soft);
+  }
+  .settlement-card > .label {
+    color: var(--expense);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .settlement-hint {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .settlement-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+  }
+  .settlement-row:first-of-type { border-top: none; }
+  .settlement-meta { flex: 1; min-width: 0; font-size: 0.91rem; }
+  .settlement-del {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--expense);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+  }
+  .settlement-del-all {
+    width: 100%;
+    margin-top: 10px;
+    padding: 9px 0;
+    border-radius: 9px;
+    border: 1px solid var(--expense);
+    background: transparent;
+    color: var(--expense);
+    font-weight: 600;
+    font-size: 0.89rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .uncategorized-card {
+    margin-bottom: 18px;
+    border-color: var(--accent);
+  }
+  .uncategorized-card > .label {
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .uncat-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-top: 1px solid var(--border);
+  }
+  .uncat-row:first-of-type { border-top: none; }
+  .uncat-meta { flex: 1; min-width: 0; }
+  .uncat-desc { font-weight: 600; font-size: 0.92rem; overflow-wrap: anywhere; }
+  .uncat-sub { font-size: 0.82rem; color: var(--text-dim); }
+  .uncat-row.expandable .uncat-meta { cursor: pointer; }
+  .uncat-detail-list {
+    margin-top: 8px;
+    padding-left: 10px;
+    border-left: 2px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .uncat-detail-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.83rem;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .uncat-detail-item span:last-child { color: var(--text); font-weight: 600; white-space: nowrap; }
+  .uncat-select {
+    padding: 7px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 0.87rem;
+    max-width: 150px;
+    flex-shrink: 0;
+    font-family: inherit;
+  }
+
+  .status { text-align: center; font-size: 0.82rem; color: var(--text-dim); margin-top: 24px; }
+
+  /* ---- Import overlay ---- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,25,20,0.5);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 50;
+  }
+  @media (min-width: 640px) { .overlay { align-items: center; } }
+  .overlay[hidden] { display: none; }
+  .panel {
+    background: var(--surface);
+    width: 100%;
+    max-width: 640px;
+    max-height: 88vh;
+    overflow-y: auto;
+    border-radius: 14px 14px 0 0;
+    padding: 20px 18px 26px;
+    box-shadow: var(--shadow);
+  }
+  @media (min-width: 640px) { .panel { border-radius: 14px; margin: 20px; } }
+  .panel h2 { font-weight: 700; font-size: 1.2rem; margin: 0 0 4px; }
+  .panel .hint { color: var(--text-dim); font-size: 0.87rem; margin-bottom: 14px; }
+  .import-source { display: flex; gap: 6px; margin-bottom: 12px; background: var(--surface-2); border-radius: 8px; padding: 3px; }
+  .import-source button {
+    flex: 1; padding: 8px 0; border-radius: 6px; border: none;
+    background: transparent; color: var(--text-dim); font-weight: 600; font-size: 0.9rem; cursor: pointer; font-family: inherit;
+  }
+  .import-source button.active { background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
+  .panel textarea {
+    width: 100%; min-height: 90px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); font-family: ui-monospace, monospace; font-size: 0.85rem;
+    padding: 8px; margin-bottom: 8px; resize: vertical;
+  }
+  .panel input[type="file"] { width: 100%; font-size: 0.89rem; color: var(--text-dim); margin-bottom: 12px; }
+  .panel-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .panel-actions button { flex: 1; padding: 11px 0; border-radius: 10px; border: none; font-weight: 600; font-size: 0.95rem; cursor: pointer; font-family: inherit; }
+  .btn-primary { background: var(--accent); color: var(--surface); }
+  .btn-secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border) !important; }
+
+  .map-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .map-field label { display: block; font-size: 0.83rem; color: var(--text-dim); margin-bottom: 3px; }
+  .map-field select, .map-field input[type="text"] {
+    width: 100%; padding: 8px 9px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); font-size: 1rem; font-family: inherit;
+  }
+  .invert-row { display: flex; align-items: center; gap: 6px; font-size: 0.89rem; color: var(--text-dim); margin: 8px 0 12px; }
+
+  .preview-table { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px; }
+  .preview-table table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+  .preview-table th, .preview-table td { padding: 7px 8px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
+  .preview-table td.amt-income { color: var(--income); font-weight: 600; }
+  .preview-table td.amt-expense { color: var(--expense); font-weight: 600; }
+  .preview-table select.row-cat {
+    padding: 4px 6px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); font-size: 0.83rem; max-width: 140px; font-family: inherit;
+  }
+  .custom-cat-row { display: none; margin-top: 8px; }
+  .custom-cat-row.show { display: block; }
+  .preview-note { font-size: 0.83rem; color: var(--text-dim); margin-bottom: 10px; }
+
+  /* ---- View tabs (Gemensam / person) ---- */
+  .view-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 3px;
+    margin-bottom: 14px;
+  }
+  .view-tab {
+    flex: 1;
+    padding: 8px 6px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 0.89rem;
+    cursor: pointer;
+    font-family: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .view-tab.active {
+    background: var(--surface);
+    color: var(--accent);
+    box-shadow: var(--shadow);
+  }
+
+  /* ---- Tablet / iPad ---- */
+  @media (min-width: 700px) {
+    .wrap {
+      max-width: 920px;
+      padding: 32px 40px calc(72px + env(safe-area-inset-bottom));
+    }
+    .topbar-title { font-size: 1.05rem; }
+    .hero { padding: 28px 32px 24px; border-radius: 14px; }
+    .hero-figure-value { font-size: 2.6rem; }
+    .hero-nav-btn { width: 40px; height: 40px; }
+    form.add { padding: 20px 22px; border-radius: 12px; }
+    .field-row input, .field-row select { padding: 11px 13px; font-size: 0.99rem; }
+    .toolbar-row { gap: 12px; }
+    .toolbar-btn { padding: 13px 6px; font-size: 0.85rem; }
+    .toolbar-icon { font-size: 1.2rem; }
+    .filter-row select { font-size: 0.97rem; padding: 9px 12px; }
+    .entry { padding: 13px 16px; }
+    .entry .cat { font-size: 0.99rem; }
+    .section-title { font-size: 0.97rem; }
+    .insight-panel, .uncategorized-card, form.add { box-shadow: var(--shadow); }
+  }
+
+  @media (min-width: 1000px) {
+    .wrap { max-width: 980px; }
+    .hero-figure-value { font-size: 2.9rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <span class="topbar-title">Hushållsbudget</span>
+    <span class="topbar-sub">Delad budget</span>
+  </header>
+
+  <div class="view-tabs" id="viewTabs"></div>
+
+  <section class="hero" id="heroCard">
+    <div class="hero-nav">
+      <button id="prevMonth" class="hero-nav-btn" aria-label="Föregående månad">‹</button>
+      <div class="hero-month" id="monthLabel">–</div>
+      <button id="nextMonth" class="hero-nav-btn" aria-label="Nästa månad">›</button>
+    </div>
+    <button type="button" class="hero-mode-link" id="toggleModeSettings">Kalendermånad ⚙</button>
+    <div class="mode-settings" id="modeSettings" style="display:none;">
+      <div class="period-toggle" id="periodToggle">
+        <button type="button" class="period-btn active" data-mode="calendar">Kalendermånad</button>
+        <button type="button" class="period-btn" data-mode="period">Löneperiod</button>
+      </div>
+      <div class="payday-row" id="paydayRow" style="display:none;">
+        Lön kommer den <input type="number" id="paydayInput" min="1" max="28" value="25">:e, gäller till nästa lön
+      </div>
+    </div>
+    <div class="hero-figure">
+      <div class="hero-figure-label" id="heroLabel">Kvar denna månad</div>
+      <div class="hero-figure-value" id="totalBalance">0 kr</div>
+    </div>
+    <div class="hero-forecast" id="heroForecast"></div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="hero-stat-dot income-dot"></span>
+        <span class="hero-stat-label">Inkomster</span>
+        <span class="hero-stat-value income-text" id="totalIncome">0 kr</span>
+      </div>
+      <div class="hero-stat-divider"></div>
+      <div class="hero-stat">
+        <span class="hero-stat-dot expense-dot"></span>
+        <span class="hero-stat-label">Utgifter</span>
+        <span class="hero-stat-value expense-text" id="totalExpense">0 kr</span>
+      </div>
+    </div>
+    <div id="heroBars"></div>
+  </section>
+
+  <form class="add" id="addForm">
+    <div class="toggle-row">
+      <button type="button" data-type="income" id="btnIncome">Inkomst</button>
+      <button type="button" data-type="expense" id="btnExpense" class="active">Utgift</button>
+    </div>
+    <div class="whoami">
+      Ditt namn:
+      <input type="text" id="whoInput" placeholder="t.ex. Henrik" maxlength="24">
+    </div>
+    <div class="field-row">
+      <select id="catInput" required></select>
+      <input type="number" id="amtInput" placeholder="Belopp (kr)" required min="0" step="0.01" inputmode="decimal">
+    </div>
+    <div class="custom-cat-row" id="customCatRow">
+      <input type="text" id="customCatInput" placeholder="Skriv egen kategori" maxlength="40" style="width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-size:1rem;">
+    </div>
+    <div class="field-row">
+      <input type="text" id="noteInput" placeholder="Anteckning (valfritt)" maxlength="80">
+      <input type="date" id="dateInput">
+    </div>
+    <button type="submit" class="submit-btn">Lägg till</button>
+  </form>
+
+  <div class="toolbar-row">
+    <button type="button" class="toolbar-btn" id="openImport"><span class="toolbar-icon">⇪</span>Importera</button>
+    <button type="button" class="toolbar-btn" id="toggleTrend"><span class="toolbar-icon">📈</span>Trend</button>
+    <button type="button" class="toolbar-btn" id="toggleRecurring"><span class="toolbar-icon">🔁</span>Åter.</button>
+    <button type="button" class="toolbar-btn" id="toggleReport"><span class="toolbar-icon">📋</span>Rapport</button>
+  </div>
+  <div class="import-status" id="importStatus"></div>
+
+  <div class="control-card">
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="🔍 Sök bland utgifter (butik, kategori, anteckning)…">
+    </div>
+
+    <div class="filter-row">
+      <select id="filterCategory"></select>
+      <select id="filterType">
+        <option value="">Alla typer</option>
+        <option value="income">Inkomster</option>
+        <option value="expense">Utgifter</option>
+      </select>
+      <select id="sortMode">
+        <option value="date-desc">Datum, nyast först</option>
+        <option value="date-asc">Datum, äldst först</option>
+        <option value="amount-desc">Belopp, högst först</option>
+        <option value="amount-asc">Belopp, lägst först</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="trendPanel" class="insight-panel" style="display:none;"></div>
+  <div id="recurringPanel" class="insight-panel" style="display:none;"></div>
+  <div id="reportPanel" class="insight-panel" style="display:none;"></div>
+
+  
+<div id="uncategorizedWrap" style="display:none;"></div>
+<div id="settlementWrap" style="display:none;"></div>
+
+  <div class="section-title">Utgifter per kategori</div>
+  <div class="breakdown" id="breakdown"></div>
+
+  <div class="section-title" id="transactionsTitle">Transaktioner denna månad</div>
+  <div class="entry-list" id="entryList"></div>
+  <div class="empty" id="emptyMsg" style="display:none;">Inga transaktioner ännu den här månaden.</div>
+
+  <div class="status" id="statusMsg"></div>
+</div>
+
+<div class="overlay" id="importOverlay" hidden>
+  <div class="panel">
+    <h2>Importera transaktioner</h2>
+    <div class="hint">Exportera ett kontoutdrag (CSV) från din bank eller ditt kreditkort och klistra in det nedan, eller välj filen direkt.</div>
+
+    <div class="import-source">
+      <button type="button" class="active" data-src="bank" id="srcBank">Bankkonto</button>
+      <button type="button" data-src="card" id="srcCard">Kreditkort</button>
+    </div>
+    <input type="text" id="importOwner" placeholder="Vems transaktioner? (t.ex. Henrik eller sambons namn)" maxlength="30" style="width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-size:1rem; margin-bottom:12px;">
+
+    <input type="file" id="csvFile" accept=".csv,.txt">
+    <textarea id="csvText" placeholder="…eller klistra in CSV-innehållet här"></textarea>
+    <div class="panel-actions">
+      <button type="button" class="btn-secondary" id="closeImport1">Avbryt</button>
+      <button type="button" class="btn-primary" id="parseBtn">Läs in</button>
+    </div>
+
+    <div id="mapSection" style="display:none; margin-top:16px;">
+      <div class="map-grid">
+        <div class="map-field">
+          <label>Datum-kolumn</label>
+          <select id="mapDate"></select>
+        </div>
+        <div class="map-field">
+          <label>Belopp-kolumn</label>
+          <select id="mapAmount"></select>
+        </div>
+        <div class="map-field">
+          <label>Beskrivning-kolumn</label>
+          <select id="mapDesc"></select>
+        </div>
+        <div class="map-field">
+          <label>Kategori-kolumn (valfri)</label>
+          <select id="mapCategory"></select>
+        </div>
+      </div>
+      <div class="map-field" style="margin-bottom:10px;">
+        <label>Standardkategori (används om ingen kategori matchas automatiskt)</label>
+        <select id="defaultCategory"></select>
+      </div>
+      <label class="invert-row">
+        <input type="checkbox" id="invertSign"> Vänd tecken (om utgifter visas som positiva belopp)
+      </label>
+      <div class="preview-note" id="previewNote"></div>
+      <div class="preview-table">
+        <table id="previewTable"></table>
+      </div>
+      <div class="panel-actions">
+        <button type="button" class="btn-secondary" id="closeImport2">Avbryt</button>
+        <button type="button" class="btn-primary" id="confirmImport">Importera</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script>
+  var firebaseConfig = {
+    apiKey: "AIzaSyCxCcFbQN68qN469vF3bMMwY6adjDQZpT0",
+    authDomain: "household-budget-73d18.firebaseapp.com",
+    projectId: "household-budget-73d18",
+    storageBucket: "household-budget-73d18.firebasestorage.app",
+    messagingSenderId: "584658488754",
+    appId: "1:584658488754:web:320db8aa97934bebcd68ab"
+  };
+  firebase.initializeApp(firebaseConfig);
+</script>
+<script>
+(function () {
+  var currentType = 'expense';
+  var viewMonth = new Date();
+  viewMonth.setDate(1);
+  var db = null;
+  var allEntries = [];
+
+  var EXPENSE_CATEGORIES = [
+    'Mat & Livsmedel', 'Restaurang & Café', 'Boende/Hyra', 'El & Uppvärmning',
+    'Hem & Underhåll', 'Transport', 'Drivmedel', 'Resor', 'Försäkring', 'Kläder & Skor', 'Hälsa & Sjukvård',
+    'Personlig vård', 'Barn', 'Husdjur', 'Nöje & Fritid', 'Prenumerationer', 'Räkningar & Avgifter',
+    'Välgörenhet', 'Sparande', 'Övrigt'
+  ];
+  var INCOME_CATEGORIES = ['Lön', 'Övrig inkomst'];
+  var ALL_CATEGORIES = INCOME_CATEGORIES.concat(EXPENSE_CATEGORIES);
+  var CUSTOM_VALUE = '__custom__';
+
+  function populateCategorySelect(sel, categories, includeCustom) {
+    sel.innerHTML = '';
+    categories.forEach(function (c) {
+      var opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      sel.appendChild(opt);
+    });
+    if (includeCustom) {
+      var opt2 = document.createElement('option');
+      opt2.value = CUSTOM_VALUE;
+      opt2.textContent = 'Annan kategori…';
+      sel.appendChild(opt2);
+    }
+  }
+
+  function refreshQuickAddCategories() {
+    var sel = document.getElementById('catInput');
+    var cats = currentType === 'income' ? INCOME_CATEGORIES.concat(EXPENSE_CATEGORIES) : EXPENSE_CATEGORIES.concat(INCOME_CATEGORIES);
+    populateCategorySelect(sel, cats, true);
+  }
+
+  function guessCategoryFromText(desc) {
+    if (!desc) return null;
+    var d = desc.toLowerCase();
+    var rules = [
+      [['ica', 'coop', 'willys', 'hemköp', 'lidl', 'city gross', 'mat.se'], 'Mat & Livsmedel'],
+      [['restaurang', 'café', 'kaffe', 'mcdonalds', 'max ', 'sushi', 'pizza', 'burger'], 'Restaurang & Café'],
+      [['hyra', 'bostadsrätt', 'boende'], 'Boende/Hyra'],
+      [['vattenfall', 'e.on', 'eon', 'fortum', 'elbolag', 'elnät'], 'El & Uppvärmning'],
+      [['sl ', 'sj ', 'västtrafik', 'skånetrafiken', 'parkering', 'buss', 'tåg'], 'Transport'],
+      [['shell', 'okq8', 'preem', 'circle k', 'st1', 'bensin', 'diesel'], 'Drivmedel'],
+      [['hotel', 'hotell', 'booking.com', 'airbnb', 'ryanair', 'norwegian', 'sas ', 'flyg', 'sj-biljett', 'scandlines', 'flixbus'], 'Resor'],
+      [['clas ohlson', 'rusta', 'jula', 'biltema', 'byggmax', 'bauhaus', 'hornbach', 'blomsterland', 'k-rauta'], 'Hem & Underhåll'],
+      [['röda korset', 'roda korset', 'cancerfonden', 'unicef', 'läkare utan gränser', 'lakare utan granser', 'barncancerfonden', 'wwf', 'stadsmissionen', 'radiohjälpen', 'radiohjalpen', 'plan international', 'hjärt-lungfonden'], 'Välgörenhet'],
+      [['frisör', 'frisor', 'hårvård', 'harvard', 'klippning', 'barber', 'salong', 'skönhet', 'skonhet', 'spa', 'massage', 'nagelsalong', 'nagel', 'hudvård', 'hudvard'], 'Personlig vård'],
+      [['försäkring', 'folksam', 'trygg-hansa', 'if skade', 'länsförsäkringar'], 'Försäkring'],
+      [['h&m', 'zalando', 'kappahl', 'lindex', 'zara', 'stadium'], 'Kläder & Skor'],
+      [['apotek', 'vårdcentral', 'tandläkare', 'sjukhus'], 'Hälsa & Sjukvård'],
+      [['förskola', 'skola', 'barnomsorg'], 'Barn'],
+      [['veterinär', 'djuraffär', 'agria'], 'Husdjur'],
+      [['bio', 'sf ', 'filmstaden', 'sats', 'gym', 'nöje', 'spotify', 'netflix', 'hbo', 'viaplay'], 'Nöje & Fritid'],
+      [['prenumeration', 'abonnemang'], 'Prenumerationer'],
+      [['lön', 'salary'], 'Lön']
+    ];
+    for (var i = 0; i < rules.length; i++) {
+      var keywords = rules[i][0];
+      for (var k = 0; k < keywords.length; k++) {
+        if (d.indexOf(keywords[k]) !== -1) return rules[i][1];
+      }
+    }
+    return null;
+  }
+
+  var monthNames = ['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december'];
+
+  function fmtMoney(n) {
+    var sign = n < 0 ? '-' : '';
+    var abs = Math.abs(Math.round(n));
+    var s = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return sign + s + ' kr';
+  }
+
+  function monthKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
+  function todayISO() {
+    var d = new Date();
+    var tz = d.getTimezoneOffset() * 60000;
+    return new Date(d - tz).toISOString().slice(0, 10);
+  }
+
+  var budgetMode = 'calendar';
+  var payday = 25;
+
+  function fmtDateShort(d) {
+    var months = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+    return d.getDate() + ' ' + months[d.getMonth()];
+  }
+
+  function fmtDateStrShort(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return dateStr;
+    return fmtDateShort(d) + ' ' + d.getFullYear();
+  }
+
+  function dateLabelForGroup(g) {
+    var dates = g.entries.map(function (e) { return e.date; }).filter(Boolean).sort();
+    if (!dates.length) return '';
+    if (dates.length === 1) return fmtDateStrShort(dates[0]);
+    var first = new Date(dates[0] + 'T00:00:00');
+    var last = new Date(dates[dates.length - 1] + 'T00:00:00');
+    if (dates[0] === dates[dates.length - 1]) return fmtDateStrShort(dates[0]);
+    return fmtDateShort(first) + '–' + fmtDateStrShort(dates[dates.length - 1]);
+  }
+
+  function getRangeForMonth(refMonth) {
+    var y = refMonth.getFullYear(), m = refMonth.getMonth();
+    if (budgetMode === 'period') {
+      var start = new Date(y, m - 1, payday);
+      var end = new Date(y, m, payday - 1);
+      return { start: start, end: end };
+    }
+    return { start: new Date(y, m, 1), end: new Date(y, m + 1, 0) };
+  }
+
+  function getViewRange() {
+    return getRangeForMonth(viewMonth);
+  }
+
+  function entriesInRange(range, personOnly) {
+    return allEntries.filter(function (e) {
+      if (!e.date) return false;
+      if (personOnly && filterPerson && (e.addedBy || '') !== filterPerson) return false;
+      var d = new Date(e.date + 'T00:00:00');
+      return d >= range.start && d <= range.end;
+    });
+  }
+
+  function getViewEntries() {
+    return entriesInRange(getViewRange(), false);
+  }
+
+  function renderMonthLabel() {
+    var label = document.getElementById('monthLabel');
+    if (searchQuery) {
+      label.textContent = 'Sökresultat';
+    } else if (budgetMode === 'period') {
+      var range = getViewRange();
+      label.textContent = fmtDateShort(range.start) + ' – ' + fmtDateShort(range.end);
+    } else {
+      label.textContent = monthNames[viewMonth.getMonth()] + ' ' + viewMonth.getFullYear();
+    }
+    document.getElementById('prevMonth').disabled = !!searchQuery;
+    document.getElementById('nextMonth').disabled = !!searchQuery;
+  }
+
+  function setType(t) {
+    currentType = t;
+    document.getElementById('btnIncome').classList.toggle('active', t === 'income');
+    document.getElementById('btnExpense').classList.toggle('active', t === 'expense');
+    refreshQuickAddCategories();
+  }
+
+  var searchQuery = '';
+  var searchQueryDisplay = '';
+  var filterCategory = '';
+  var filterType = '';
+  var filterPerson = '';
+  var sortMode = 'date-desc';
+  var editingId = null;
+  var trendOpen = false;
+  var recurringOpen = false;
+  var reportOpen = false;
+
+  function matchesSearch(e, q) {
+    var hay = [e.note, e.category, e.addedBy, e.date, e.amount].filter(Boolean).join(' ').toLowerCase();
+    return hay.indexOf(q) !== -1;
+  }
+  function entriesForSearch(q) {
+    return allEntries.filter(function (e) { return matchesSearch(e, q); });
+  }
+  function applyFilters(list) {
+    if (filterType) list = list.filter(function (e) { return e.type === filterType; });
+    if (filterPerson) list = list.filter(function (e) { return (e.addedBy || '') === filterPerson; });
+    if (filterCategory === '__uncategorized__') list = list.filter(isUncategorized);
+    else if (filterCategory) list = list.filter(function (e) { return e.category === filterCategory; });
+    return list;
+  }
+  function sortEntries(list) {
+    var sorted = list.slice();
+    switch (sortMode) {
+      case 'date-asc':
+        sorted.sort(function (a, b) { return (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0); });
+        break;
+      case 'amount-desc':
+        sorted.sort(function (a, b) { return (Number(b.amount) || 0) - (Number(a.amount) || 0); });
+        break;
+      case 'amount-asc':
+        sorted.sort(function (a, b) { return (Number(a.amount) || 0) - (Number(b.amount) || 0); });
+        break;
+      default:
+        sorted.sort(function (a, b) { return (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0); });
+    }
+    return sorted;
+  }
+  function hasActiveFilters() {
+    return !!(filterType || filterCategory);
+  }
+
+  var viewTabOrder = [''];
+
+  function renderViewTabs() {
+    var wrap = document.getElementById('viewTabs');
+    var names = {};
+    allEntries.forEach(function (e) { if (e.addedBy) names[e.addedBy] = true; });
+    var list = Object.keys(names).sort();
+    if (list.indexOf(filterPerson) === -1) filterPerson = '';
+    var tabs = [{ value: '', label: 'Gemensam' }].concat(list.map(function (n) { return { value: n, label: n }; }));
+    viewTabOrder = tabs.map(function (t) { return t.value; });
+    var html = tabs.map(function (t) {
+      return '<button type="button" class="view-tab' + (filterPerson === t.value ? ' active' : '') + '" data-person="' + escapeHtml(t.value) + '">' + escapeHtml(t.label) + '</button>';
+    }).join('');
+    if (wrap.innerHTML !== html) wrap.innerHTML = html;
+    wrap.querySelectorAll('.view-tab').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        filterPerson = this.getAttribute('data-person');
+        render();
+      });
+    });
+  }
+
+  function switchViewBySwipe(direction) {
+    var idx = viewTabOrder.indexOf(filterPerson);
+    if (idx === -1) idx = 0;
+    var next = idx + direction;
+    if (next < 0 || next >= viewTabOrder.length) return;
+    filterPerson = viewTabOrder[next];
+    render();
+  }
+
+  function detectRecurringGroups() {
+    var groups = {};
+    allEntries.forEach(function (e) {
+      if (e.type !== 'expense') return;
+      if (filterPerson && (e.addedBy || '') !== filterPerson) return;
+      var key = normalizeKey(e.note);
+      if (!key) return;
+      if (!groups[key]) groups[key] = { key: key, sample: e.note, entries: [] };
+      groups[key].entries.push(e);
+    });
+    var result = [];
+    Object.keys(groups).forEach(function (k) {
+      var g = groups[k];
+      var months = {};
+      g.entries.forEach(function (e) { months[(e.date || '').slice(0, 7)] = true; });
+      var distinctMonths = Object.keys(months).length;
+      if (distinctMonths < 2 || g.entries.length > distinctMonths * 1.5) return;
+      var amounts = g.entries.map(function (e) { return Number(e.amount) || 0; });
+      var avg = amounts.reduce(function (a, b) { return a + b; }, 0) / amounts.length;
+      if (avg === 0) return;
+      var variance = (Math.max.apply(null, amounts) - Math.min.apply(null, amounts)) / avg;
+      if (variance > 0.25) return;
+      result.push({ key: k, sample: g.sample, count: g.entries.length, months: distinctMonths, avg: avg, category: g.entries[g.entries.length - 1].category, entries: g.entries });
+    });
+    result.sort(function (a, b) { return b.avg - a.avg; });
+    return result;
+  }
+
+  var forecastExpanded = false;
+  var lastImportInfo = null;
+
+  function daysAgo(dateStr) {
+    if (!dateStr) return null;
+    var d = new Date(dateStr + 'T00:00:00');
+    var now = new Date();
+    return Math.floor((now - d) / 86400000);
+  }
+
+  function renderImportStatus() {
+    var el = document.getElementById('importStatus');
+    if (!el) return;
+    if (!lastImportInfo || !lastImportInfo.date) {
+      el.textContent = 'Ingen import gjord ännu';
+      el.className = 'import-status stale';
+      return;
+    }
+    var days = daysAgo(lastImportInfo.date);
+    var label = days <= 0 ? 'idag' : days === 1 ? '1 dag sedan' : days + ' dagar sedan';
+    el.textContent = 'Senast importerat: ' + label + (lastImportInfo.by ? ' (' + lastImportInfo.by + ')' : '');
+    el.className = 'import-status ' + (days <= 7 ? 'ok' : days <= 14 ? 'warn' : 'stale');
+  }
+
+  function computeForecast() {
+    var range = getViewRange();
+    var periodEntries = getViewEntries().filter(function (e) {
+      return !filterPerson || (e.addedBy || '') === filterPerson;
+    });
+    var actualIncome = 0, actualExpense = 0;
+    periodEntries.forEach(function (e) {
+      var amt = Number(e.amount) || 0;
+      if (e.type === 'income') actualIncome += amt; else actualExpense += amt;
+    });
+    var actualBalance = actualIncome - actualExpense;
+
+    var recurring = detectRecurringGroups();
+    var missingTotal = 0;
+    var missingItems = [];
+    recurring.forEach(function (g) {
+      var occurred = g.entries.some(function (e) {
+        if (!e.date) return false;
+        var d = new Date(e.date + 'T00:00:00');
+        return d >= range.start && d <= range.end;
+      });
+      if (!occurred) {
+        missingTotal += g.avg;
+        missingItems.push(g);
+      }
+    });
+    missingItems.sort(function (a, b) { return b.avg - a.avg; });
+
+    return {
+      actualBalance: actualBalance,
+      missingTotal: missingTotal,
+      forecastBalance: actualBalance - missingTotal,
+      missingItems: missingItems
+    };
+  }
+
+  function renderHeroForecast() {
+    var el = document.getElementById('heroForecast');
+    if (searchQuery) { el.innerHTML = ''; return; }
+    var f = computeForecast();
+    if (!f.missingItems.length) {
+      el.innerHTML = '<div class="forecast-line ok">✓ Inga kända räkningar väntar den här perioden</div>';
+      return;
+    }
+    var html = '<div class="forecast-line' + (f.forecastBalance < 0 ? ' neg' : '') + '" id="forecastToggle">' +
+      'Kvar efter kända räkningar: <strong></strong>' +
+      '<span class="forecast-chevron">' + (forecastExpanded ? '▾' : '▸') + '</span>' +
+      '</div>';
+    if (forecastExpanded) {
+      html += '<div class="forecast-detail">' + f.missingItems.map(function () {
+        return '<div class="forecast-detail-item"><span></span><span></span></div>';
+      }).join('') + '</div>';
+    }
+    el.innerHTML = html;
+    el.querySelector('.forecast-line strong').textContent = fmtMoney(f.forecastBalance);
+    if (forecastExpanded) {
+      var items = el.querySelectorAll('.forecast-detail-item');
+      f.missingItems.forEach(function (g, i) {
+        var spans = items[i].querySelectorAll('span');
+        spans[0].textContent = g.sample || '(ingen beskrivning)';
+        spans[1].textContent = fmtMoney(g.avg);
+      });
+    }
+    el.querySelector('#forecastToggle').addEventListener('click', function () {
+      forecastExpanded = !forecastExpanded;
+      renderHeroForecast();
+    });
+  }
+
+
+  var expandedRecurringKeys = {};
+
+  function renderRecurringPanel() {
+    var groups = detectRecurringGroups();
+    var panel = document.getElementById('recurringPanel');
+    if (!groups.length) {
+      panel.innerHTML = '<div class="empty" style="padding:8px 0;">Inga återkommande betalningar hittade än.</div>';
+      return;
+    }
+    var totalMonthly = groups.reduce(function (s, g) { return s + g.avg; }, 0);
+    var html = '<div style="font-size:0.8rem; color:var(--text-dim); margin-bottom:10px;">Uppskattad summa: <strong style="color:var(--text);">' + fmtMoney(totalMonthly) + '</strong>/månad</div>';
+    groups.forEach(function (g) {
+      var expanded = expandedRecurringKeys[g.key];
+      html += '<div class="uncat-row expandable"><div class="uncat-meta"><div class="uncat-desc"></div><div class="uncat-sub"></div>' +
+        (expanded ? '<div class="uncat-detail-list">' + g.entries.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); }).map(function () {
+          return '<div class="uncat-detail-item"><span></span><span></span></div>';
+        }).join('') + '</div>' : '') +
+        '</div>' +
+        '<div style="font-weight:700; color:var(--expense); white-space:nowrap;"></div></div>';
+    });
+    panel.innerHTML = html;
+    panel.querySelectorAll('.uncat-row').forEach(function (row, i) {
+      var g = groups[i];
+      var expanded = expandedRecurringKeys[g.key];
+      row.querySelector('.uncat-desc').textContent = (g.sample || '(ingen beskrivning)') + (expanded ? ' ▾' : ' ▸');
+      row.querySelector('.uncat-sub').textContent = (g.category && !isUncategorized({ category: g.category }) ? g.category : 'Okategoriserad') + ' · ' + g.months + ' månader · senast ' + dateLabelForGroup(g).split('–').pop();
+      row.querySelector('div[style*="white-space"]').textContent = fmtMoney(g.avg);
+      if (expanded) {
+        var sorted = g.entries.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+        var items = row.querySelectorAll('.uncat-detail-item');
+        sorted.forEach(function (e, idx) {
+          var spans = items[idx].querySelectorAll('span');
+          spans[0].textContent = fmtDateStrShort(e.date) + (e.addedBy ? ' · ' + e.addedBy : '');
+          spans[1].textContent = fmtMoney(Number(e.amount) || 0);
+        });
+      }
+      row.querySelector('.uncat-meta').addEventListener('click', function () {
+        expandedRecurringKeys[g.key] = !expandedRecurringKeys[g.key];
+        renderRecurringPanel();
+      });
+    });
+  }
+
+  function computeReport() {
+    var range = getViewRange();
+    var entries = entriesInRange(range, true);
+    var prevRange = getRangeForMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1));
+    var prevEntries = entriesInRange(prevRange, true);
+
+    function totals(list) {
+      var income = 0, expense = 0;
+      list.forEach(function (e) {
+        var amt = Number(e.amount) || 0;
+        if (e.type === 'income') income += amt; else expense += amt;
+      });
+      return { income: income, expense: expense, balance: income - expense };
+    }
+    var cur = totals(entries);
+    var prev = totals(prevEntries);
+
+    var catTotals = {};
+    var prevCatTotals = {};
+    var uncatCount = 0;
+    var biggest = null;
+    var peopleTotals = {};
+    entries.forEach(function (e) {
+      if (e.type !== 'expense') return;
+      var amt = Number(e.amount) || 0;
+      var cat = isUncategorized(e) ? null : e.category;
+      if (!cat) uncatCount++;
+      else catTotals[cat] = (catTotals[cat] || 0) + amt;
+      if (!biggest || amt > biggest.amount) biggest = e;
+      var person = e.addedBy || 'Okänd';
+      peopleTotals[person] = (peopleTotals[person] || 0) + amt;
+    });
+    prevEntries.forEach(function (e) {
+      if (e.type !== 'expense' || isUncategorized(e)) return;
+      prevCatTotals[e.category] = (prevCatTotals[e.category] || 0) + (Number(e.amount) || 0);
+    });
+    var topCats = Object.keys(catTotals).map(function (c) { return { cat: c, amt: catTotals[c] }; })
+      .sort(function (a, b) { return b.amt - a.amt; }).slice(0, 5);
+
+    var expenseCount = entries.filter(function (e) { return e.type === 'expense'; }).length;
+    var avgExpense = expenseCount ? cur.expense / expenseCount : 0;
+    var savingsRate = cur.income > 0 ? (cur.balance / cur.income) * 100 : null;
+
+    var recurring = detectRecurringGroups().filter(function (g) {
+      return g.entries.some(function (e) {
+        if (!e.date) return false;
+        var d = new Date(e.date + 'T00:00:00');
+        return d >= range.start && d <= range.end;
+      });
+    });
+    var recurringTotal = recurring.reduce(function (s, g) { return s + g.avg; }, 0);
+
+    var peopleList = Object.keys(peopleTotals).map(function (p) { return { name: p, amt: peopleTotals[p] }; })
+      .sort(function (a, b) { return b.amt - a.amt; });
+
+    var funFacts = computeFunFacts(range, entries);
+    var insight = computeInsight(cur, prev, catTotals, prevCatTotals, prevEntries.length);
+
+    return {
+      range: range, cur: cur, prev: prev, topCats: topCats, biggest: biggest,
+      uncatCount: uncatCount, expenseCount: expenseCount, avgExpense: avgExpense,
+      savingsRate: savingsRate, recurringCount: recurring.length, recurringTotal: recurringTotal,
+      peopleList: peopleList, funFacts: funFacts, insight: insight
+    };
+  }
+
+  function computeInsight(cur, prev, catTotals, prevCatTotals, prevEntryCount) {
+    if (!prevEntryCount || prev.expense === 0) {
+      return 'Första perioden med tillräckligt med data för jämförelse — nästa period kan vi visa en riktig trend.';
+    }
+
+    var catChanges = [];
+    Object.keys(catTotals).forEach(function (c) {
+      var curAmt = catTotals[c];
+      var prevAmt = prevCatTotals[c] || 0;
+      var diff = curAmt - prevAmt;
+      if (prevAmt > 0 && Math.abs(diff) >= 200 && Math.abs(diff / prevAmt) >= 0.25) {
+        catChanges.push({ cat: c, diff: diff, pct: (diff / prevAmt) * 100 });
+      }
+    });
+    catChanges.sort(function (a, b) { return Math.abs(b.diff) - Math.abs(a.diff); });
+
+    var expDiff = cur.expense - prev.expense;
+    var expPct = prev.expense ? (expDiff / prev.expense) * 100 : 0;
+
+    if (catChanges.length) {
+      var top = catChanges[0];
+      var dir = top.diff > 0 ? 'ökat' : 'minskat';
+      var emoji = top.diff > 0 ? '📈' : '📉';
+      return emoji + ' ' + top.cat + ' har ' + dir + ' med ' + fmtMoney(Math.abs(top.diff)) + ' (' + Math.abs(Math.round(top.pct)) + '%) jämfört med förra perioden.';
+    }
+    if (Math.abs(expPct) >= 15 && Math.abs(expDiff) >= 300) {
+      if (expDiff > 0) return '📈 Utgifterna ökade med ' + fmtMoney(expDiff) + ' (' + Math.round(expPct) + '%) jämfört med förra perioden.';
+      return '📉 Utgifterna minskade med ' + fmtMoney(Math.abs(expDiff)) + ' (' + Math.abs(Math.round(expPct)) + '%) jämfört med förra perioden — bra jobbat!';
+    }
+    return '↔️ Ungefär som förra perioden — inga stora förändringar i vare sig utgifter eller kategorier.';
+  }
+
+
+  function computeFunFacts(range, entries) {
+    var expenseEntries = entries.filter(function (e) { return e.type === 'expense'; });
+    if (!expenseEntries.length) return null;
+
+    var placeCounts = {}, placeSample = {};
+    expenseEntries.forEach(function (e) {
+      var key = normalizeKey(e.note) || ('__id__' + e.id);
+      placeCounts[key] = (placeCounts[key] || 0) + 1;
+      if (!placeSample[key]) placeSample[key] = e.note || '(ingen beskrivning)';
+    });
+    var topPlaceKey = Object.keys(placeCounts).sort(function (a, b) { return placeCounts[b] - placeCounts[a]; })[0];
+    var topPlace = (topPlaceKey && placeCounts[topPlaceKey] > 1) ? { name: placeSample[topPlaceKey], count: placeCounts[topPlaceKey] } : null;
+
+    var recurringKeys = {};
+    detectRecurringGroups().forEach(function (g) { recurringKeys[g.key] = true; });
+    var FIXED_COST_CATEGORIES = { 'Sparande': true, 'Räkningar & Avgifter': true, 'Boende/Hyra': true, 'Försäkring': true };
+    var discretionary = expenseEntries.filter(function (e) {
+      if (e.category && FIXED_COST_CATEGORIES[e.category]) return false;
+      var key = normalizeKey(e.note);
+      return !key || !recurringKeys[key];
+    });
+
+    var dayTotals = {};
+    var dayItems = {};
+    discretionary.forEach(function (e) {
+      if (!e.date) return;
+      dayTotals[e.date] = (dayTotals[e.date] || 0) + (Number(e.amount) || 0);
+      if (!dayItems[e.date]) dayItems[e.date] = [];
+      dayItems[e.date].push(e);
+    });
+    var allDayKeys = {};
+    expenseEntries.forEach(function (e) { if (e.date) allDayKeys[e.date] = true; });
+    var dayKeys = Object.keys(dayTotals).sort();
+    var topDayKey = dayKeys.slice().sort(function (a, b) { return dayTotals[b] - dayTotals[a]; })[0];
+    var topDay = topDayKey ? {
+      date: topDayKey,
+      amt: dayTotals[topDayKey],
+      items: dayItems[topDayKey].slice().sort(function (a, b) { return (Number(b.amount) || 0) - (Number(a.amount) || 0); })
+    } : null;
+
+    var todayD = new Date(todayISO() + 'T00:00:00');
+    var effectiveEnd = range.end < todayD ? range.end : todayD;
+    var points = Object.keys(allDayKeys).sort().map(function (d) { return new Date(d + 'T00:00:00'); });
+    var prev = range.start;
+    var longestGap = 0;
+    points.forEach(function (p) {
+      var gap = Math.round((p - prev) / 86400000);
+      if (gap > longestGap) longestGap = gap;
+      prev = p;
+    });
+    var finalGap = Math.round((effectiveEnd - prev) / 86400000);
+    if (finalGap > longestGap) longestGap = finalGap;
+
+    return { topPlace: topPlace, topDay: topDay, longestGap: longestGap };
+  }
+
+  function deltaHtml(curVal, prevVal, higherIsBad) {
+    if (!prevVal) return '';
+    var pct = ((curVal - prevVal) / Math.abs(prevVal)) * 100;
+    if (Math.abs(pct) < 1) return '<div class="report-delta">≈ som förra perioden</div>';
+    var up = pct > 0;
+    var cls = (up === !!higherIsBad) ? 'down' : 'up';
+    return '<div class="report-delta ' + cls + '">' + (up ? '▲' : '▼') + ' ' + Math.abs(Math.round(pct)) + '% mot förra perioden</div>';
+  }
+
+  function renderReportPanel() {
+    var panel = document.getElementById('reportPanel');
+    var r = computeReport();
+    var periodLabel = budgetMode === 'period'
+      ? fmtDateShort(r.range.start) + ' – ' + fmtDateShort(r.range.end) + ' ' + r.range.end.getFullYear()
+      : monthNames[viewMonth.getMonth()] + ' ' + viewMonth.getFullYear();
+
+    var html = '<div class="report-title">Rapport' + (filterPerson ? ' — ' + filterPerson : '') + '</div>' +
+      '<div class="report-sub">' + periodLabel + '</div>';
+
+    if (r.insight) {
+      html += '<div class="report-insight">' + escapeHtml(r.insight) + '</div>';
+    }
+
+    html += '<div class="report-grid">' +
+      '<div class="report-stat"><div class="report-stat-label">Inkomster</div><div class="report-stat-value income-text"></div>' + deltaHtml(r.cur.income, r.prev.income, false) + '</div>' +
+      '<div class="report-stat"><div class="report-stat-label">Utgifter</div><div class="report-stat-value expense-text"></div>' + deltaHtml(r.cur.expense, r.prev.expense, true) + '</div>' +
+      '<div class="report-stat"><div class="report-stat-label">Kvar</div><div class="report-stat-value"></div></div>' +
+      '<div class="report-stat"><div class="report-stat-label">Sparkvot</div><div class="report-stat-value"></div></div>' +
+      '</div>';
+
+    if (r.topCats.length) {
+      html += '<div class="report-section-title">Största utgiftskategorier</div>';
+      r.topCats.forEach(function () {
+        html += '<div class="report-line"><span class="rl-label"></span><span class="rl-value"></span></div>';
+      });
+    }
+
+    html += '<div class="report-divider"></div>';
+    html += '<div class="report-section-title">Om perioden</div>' +
+      '<div class="report-line"><span class="rl-label">Antal utgiftsposter</span><span class="rl-value"></span></div>' +
+      '<div class="report-line"><span class="rl-label">Snitt per utgift</span><span class="rl-value"></span></div>' +
+      (r.biggest ? '<div class="report-line"><span class="rl-label">Största enskilda utgift</span><span class="rl-value"></span></div>' : '') +
+      (r.recurringCount ? '<div class="report-line"><span class="rl-label">Kända räkningar denna period</span><span class="rl-value"></span></div>' : '');
+
+    if (!filterPerson && r.peopleList.length > 1) {
+      html += '<div class="report-section-title">Fördelning</div><div class="report-people-row" id="reportPeopleRow"></div>';
+    }
+
+    if (r.funFacts) {
+      html += '<div class="report-divider"></div><div class="report-section-title">🎉 Kul fakta</div><div id="reportFunFacts"></div>';
+    }
+
+    if (r.uncatCount > 0) {
+      html += '<div class="report-nag"></div>';
+    }
+
+    panel.innerHTML = html;
+
+    var statValues = panel.querySelectorAll('.report-stat-value');
+    statValues[0].textContent = fmtMoney(r.cur.income);
+    statValues[1].textContent = fmtMoney(r.cur.expense);
+    statValues[2].textContent = fmtMoney(r.cur.balance);
+    statValues[2].classList.toggle('expense-text', r.cur.balance < 0);
+    statValues[2].classList.toggle('income-text', r.cur.balance >= 0);
+    statValues[3].textContent = r.savingsRate === null ? '–' : Math.round(r.savingsRate) + '%';
+    statValues[3].classList.toggle('expense-text', r.savingsRate !== null && r.savingsRate < 0);
+    statValues[3].classList.toggle('income-text', r.savingsRate !== null && r.savingsRate >= 0);
+
+    var catLines = panel.querySelectorAll('.report-line');
+    var li = 0;
+    r.topCats.forEach(function (tc) {
+      var line = catLines[li++];
+      line.querySelector('.rl-label').textContent = tc.cat;
+      line.querySelector('.rl-value').textContent = fmtMoney(tc.amt);
+    });
+    catLines[li].querySelector('.rl-value').textContent = String(r.expenseCount); li++;
+    catLines[li].querySelector('.rl-value').textContent = fmtMoney(r.avgExpense); li++;
+    if (r.biggest) {
+      catLines[li].querySelector('.rl-label').textContent = (r.biggest.note || 'Okänd') + ' (' + fmtDateStrShort(r.biggest.date) + ')';
+      catLines[li].querySelector('.rl-value').textContent = fmtMoney(Number(r.biggest.amount) || 0);
+      li++;
+    }
+    if (r.recurringCount) {
+      catLines[li].querySelector('.rl-label').textContent = r.recurringCount + ' st';
+      catLines[li].querySelector('.rl-value').textContent = fmtMoney(r.recurringTotal);
+      li++;
+    }
+
+    var peopleRow = document.getElementById('reportPeopleRow');
+    if (peopleRow) {
+      peopleRow.innerHTML = r.peopleList.map(function (p) {
+        return '<div class="report-people-chip"><span></span><strong></strong></div>';
+      }).join('');
+      peopleRow.querySelectorAll('.report-people-chip').forEach(function (chip, i) {
+        chip.querySelector('span').textContent = r.peopleList[i].name;
+        chip.querySelector('strong').textContent = fmtMoney(r.peopleList[i].amt);
+      });
+    }
+
+    var funEl = document.getElementById('reportFunFacts');
+    if (funEl && r.funFacts) {
+      var lines = [];
+      if (r.funFacts.topPlace) {
+        lines.push('🏆 Vanligaste stället: <strong>' + escapeHtml(r.funFacts.topPlace.name) + '</strong> (' + r.funFacts.topPlace.count + ' gånger)');
+      }
+      if (r.funFacts.topDay) {
+        var items = r.funFacts.topDay.items || [];
+        var itemNames = items.slice(0, 3).map(function (e) { return escapeHtml(e.note || 'okänt köp'); }).join(', ');
+        if (items.length > 3) itemNames += ' m.fl.';
+        lines.push('💸 Dyraste dagen (utöver fasta kostnader & sparande): <strong>' + fmtDateStrShort(r.funFacts.topDay.date) + '</strong> (' + fmtMoney(r.funFacts.topDay.amt) + ')' + (itemNames ? ' — ' + itemNames : ''));
+      }
+      if (r.funFacts.longestGap > 0) {
+        lines.push('🧘 Längsta köpfria sträckan: <strong>' + r.funFacts.longestGap + ' dag' + (r.funFacts.longestGap > 1 ? 'ar' : '') + '</strong> i rad utan en enda utgift');
+      }
+      funEl.innerHTML = lines.map(function (l) {
+        return '<div class="report-line" style="border-top:none; padding:5px 0;"><span class="rl-label" style="white-space:normal; overflow:visible;">' + l + '</span></div>';
+      }).join('');
+    }
+
+    var nag = panel.querySelector('.report-nag');
+    if (nag) {
+      nag.textContent = '⚠ ' + r.uncatCount + ' utgift' + (r.uncatCount > 1 ? 'er' : '') + ' saknar fortfarande kategori — kolla Okategoriserat innan rapporten är komplett.';
+    }
+  }
+
+  function fmtMoneyShort(n) {
+    if (n >= 1000) return Math.round(n / 1000) + 'k';
+    return Math.round(n).toString();
+  }
+
+  function monthShortLabel(key) {
+    var parts = key.split('-');
+    var names = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+    return names[parseInt(parts[1], 10) - 1] + ' ' + parts[0].slice(2);
+  }
+
+  function buildHeroCurveHtml() {
+    var range = getViewRange();
+    var totalDays = Math.round((range.end - range.start) / 86400000) + 1;
+    var monthEntries = applyFilters(getViewEntries());
+
+    var byDate = {};
+    monthEntries.forEach(function (e) {
+      if (!e.date) return;
+      if (!byDate[e.date]) byDate[e.date] = { income: 0, expense: 0 };
+      var amt = Number(e.amount) || 0;
+      if (e.type === 'income') byDate[e.date].income += amt;
+      else byDate[e.date].expense += amt;
+    });
+
+    var cumIncome = [], cumExpense = [], runI = 0, runE = 0;
+    for (var i = 0; i < totalDays; i++) {
+      var d = new Date(range.start);
+      d.setDate(range.start.getDate() + i);
+      var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      var day = byDate[key];
+      runI += day ? day.income : 0;
+      runE += day ? day.expense : 0;
+      cumIncome.push(runI); cumExpense.push(runE);
+    }
+
+    var w = 300, h = 84, pad = 4;
+    var innerW = w - pad * 2, innerH = h - pad * 2;
+    var maxVal = Math.max.apply(null, cumIncome.concat(cumExpense, [1]));
+    function xPos(i) { return pad + (totalDays <= 1 ? 0 : (i / (totalDays - 1)) * innerW); }
+    function yPos(v) { return pad + innerH - (v / maxVal) * innerH; }
+
+    var incomePts = cumIncome.map(function (v, i) { return xPos(i) + ',' + yPos(v); }).join(' ');
+    var expensePts = cumExpense.map(function (v, i) { return xPos(i) + ',' + yPos(v); }).join(' ');
+
+    var svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%; height:auto; display:block;">' +
+      '<polyline points="' + incomePts + '" fill="none" stroke="var(--income)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<polyline points="' + expensePts + '" fill="none" stroke="var(--expense)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '</svg>';
+
+    return '<div class="hero-curve-wrap">' + svg + '</div>';
+  }
+
+  function renderTrendPanel() {
+    var monthly = {};
+    allEntries.forEach(function (e) {
+      if (filterPerson && (e.addedBy || '') !== filterPerson) return;
+      var key = (e.date || '').slice(0, 7);
+      if (!key) return;
+      if (!monthly[key]) monthly[key] = { income: 0, expense: 0 };
+      if (e.type === 'income') monthly[key].income += Number(e.amount) || 0;
+      else monthly[key].expense += Number(e.amount) || 0;
+    });
+    var keys = Object.keys(monthly).sort();
+    if (keys.length > 12) keys = keys.slice(keys.length - 12);
+    var panel = document.getElementById('trendPanel');
+    if (keys.length === 0) {
+      panel.innerHTML = '<div class="empty" style="padding:8px 0;">Ingen data att visa än.</div>';
+      return;
+    }
+
+    var w = 320, h = 180, padL = 34, padR = 8, padT = 14, padB = 26;
+    var innerW = w - padL - padR, innerH = h - padT - padB;
+    var maxVal = 1;
+    keys.forEach(function (k) { maxVal = Math.max(maxVal, monthly[k].income, monthly[k].expense); });
+
+    function xPos(i) { return padL + (keys.length === 1 ? innerW / 2 : (i / (keys.length - 1)) * innerW); }
+    function yPos(v) { return padT + innerH - (v / maxVal) * innerH; }
+
+    var incomePts = keys.map(function (k, i) { return xPos(i) + ',' + yPos(monthly[k].income); }).join(' ');
+    var expensePts = keys.map(function (k, i) { return xPos(i) + ',' + yPos(monthly[k].expense); }).join(' ');
+
+    var gridLines = '';
+    for (var g = 0; g <= 2; g++) {
+      var gy = padT + innerH - (g / 2) * innerH;
+      gridLines += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (w - padR) + '" y2="' + gy + '" stroke="var(--border)" stroke-width="1"/>';
+      gridLines += '<text x="' + (padL - 5) + '" y="' + (gy + 3) + '" font-size="10" fill="var(--text-dim)" text-anchor="end">' + fmtMoneyShort((g / 2) * maxVal) + '</text>';
+    }
+
+    var labels = keys.map(function (k, i) {
+      if (keys.length > 6 && i % 2 !== 0 && i !== keys.length - 1) return '';
+      return '<text x="' + xPos(i) + '" y="' + (h - 8) + '" font-size="10" fill="var(--text-dim)" text-anchor="middle">' + monthShortLabel(k) + '</text>';
+    }).join('');
+
+    var incomeDots = keys.map(function (k, i) { return '<circle cx="' + xPos(i) + '" cy="' + yPos(monthly[k].income) + '" r="2.5" fill="var(--income)"/>'; }).join('');
+    var expenseDots = keys.map(function (k, i) { return '<circle cx="' + xPos(i) + '" cy="' + yPos(monthly[k].expense) + '" r="2.5" fill="var(--expense)"/>'; }).join('');
+
+    var svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%; height:auto; display:block;">' +
+      gridLines +
+      '<polyline points="' + incomePts + '" fill="none" stroke="var(--income)" stroke-width="2"/>' +
+      '<polyline points="' + expensePts + '" fill="none" stroke="var(--expense)" stroke-width="2"/>' +
+      incomeDots + expenseDots + labels +
+      '</svg>';
+
+    panel.innerHTML =
+      '<div style="display:flex; gap:14px; font-size:0.78rem; margin-bottom:8px;">' +
+      '<span style="color:var(--income);">● Inkomster</span>' +
+      '<span style="color:var(--expense);">● Utgifter</span>' +
+      '</div>' + svg;
+  }
+
+  var SETTLEMENT_LABELS = ['seb kort bank ab', 'swedbank kreditkort', 'nordea kort', 'handelsbanken kort', 'länsförsäkringar kort'];
+
+  function getSettlementEntries() {
+    return allEntries.filter(function (e) {
+      if (e.type !== 'expense' || !e.note) return false;
+      if (filterPerson && (e.addedBy || '') !== filterPerson) return false;
+      return SETTLEMENT_LABELS.indexOf(e.note.trim().toLowerCase()) !== -1;
+    }).sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+  }
+
+  function allCardPurchasesSorted() {
+    var cardEntries = allEntries.filter(function (e) { return e.type === 'expense' && e.source === 'Kortimport'; });
+    if (!cardEntries.length) return false;
+    return cardEntries.every(function (e) { return !isUncategorized(e); });
+  }
+
+  function renderSettlementWarning() {
+    var wrap = document.getElementById('settlementWrap');
+    var list = getSettlementEntries();
+    if (!list.length) {
+      wrap.style.display = 'none';
+      wrap.innerHTML = '';
+      return;
+    }
+    if (allCardPurchasesSorted()) {
+      list.forEach(function (e) { deleteEntry(e.id); });
+      wrap.style.display = 'none';
+      wrap.innerHTML = '';
+      setStatus('Alla kortköp är sorterade — kortavräkningen togs bort automatiskt.');
+      return;
+    }
+    wrap.style.display = 'block';
+    var total = list.reduce(function (s, e) { return s + (Number(e.amount) || 0); }, 0);
+    var html = '<div class="card settlement-card">' +
+      '<div class="label">⚠️ Möjlig dubbelräkning (' + list.length + ')</div>' +
+      '<div class="settlement-hint">Det här är kortavräkningar från banken, inte enskilda köp. Om du importerar kortets egna kontoutdrag och kategoriserar alla köpen där, försvinner raderna nedan automatiskt. Fram tills dess kan du ta bort dem manuellt.</div>';
+    list.forEach(function (e, i) {
+      html += '<div class="settlement-row" data-i="' + i + '"><div class="settlement-meta"></div><button type="button" class="settlement-del">Ta bort</button></div>';
+    });
+    html += '<button type="button" class="settlement-del-all">Ta bort alla (' + fmtMoney(total) + ')</button></div>';
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('.settlement-row').forEach(function (row) {
+      var e = list[parseInt(row.getAttribute('data-i'), 10)];
+      row.querySelector('.settlement-meta').textContent = e.note + ' · ' + fmtDateStrShort(e.date) + ' · ' + fmtMoney(Number(e.amount) || 0);
+      row.querySelector('.settlement-del').addEventListener('click', function () {
+        deleteEntry(e.id);
+      });
+    });
+    wrap.querySelector('.settlement-del-all').addEventListener('click', function () {
+      list.forEach(function (e) { deleteEntry(e.id); });
+    });
+  }
+
+  function render() {
+    renderMonthLabel();
+    renderUncategorizedSection();
+    renderSettlementWarning();
+    renderImportStatus();
+    renderViewTabs();
+    if (trendOpen) renderTrendPanel();
+    if (recurringOpen) renderRecurringPanel();
+    if (reportOpen) renderReportPanel();
+    var recurringKeySet = new Set(detectRecurringGroups().map(function (g) { return g.key; }));
+    var entries = searchQuery ? entriesForSearch(searchQuery) : getViewEntries();
+    entries = applyFilters(entries);
+    document.getElementById('transactionsTitle').textContent =
+      searchQuery ? 'Sökresultat (' + entries.length + ')' :
+      hasActiveFilters() ? 'Filtrerat (' + entries.length + ')' :
+      (budgetMode === 'period' ? 'Transaktioner denna löneperiod' : 'Transaktioner denna månad');
+    entries = sortEntries(entries);
+
+    var income = 0, expense = 0;
+    var catTotals = {};
+    entries.forEach(function (e) {
+      var amt = Number(e.amount) || 0;
+      if (e.type === 'income') { income += amt; }
+      else {
+        expense += amt;
+        var c = isUncategorized(e) ? 'Okategoriserad' : e.category;
+        catTotals[c] = (catTotals[c] || 0) + amt;
+      }
+    });
+
+    document.getElementById('totalIncome').textContent = fmtMoney(income);
+    document.getElementById('totalExpense').textContent = fmtMoney(expense);
+    var bal = income - expense;
+    var balEl = document.getElementById('totalBalance');
+    balEl.textContent = fmtMoney(bal);
+    balEl.classList.toggle('neg', bal < 0);
+    balEl.classList.toggle('pos', bal >= 0);
+    document.getElementById('heroLabel').textContent =
+      (budgetMode === 'period' ? 'Kvar till nästa lön' : 'Kvar denna månad') + (filterPerson ? ' — ' + filterPerson : '');
+    renderHeroForecast();
+    document.getElementById('heroBars').innerHTML = buildHeroCurveHtml();
+
+    var list = document.getElementById('entryList');
+    var emptyMsg = document.getElementById('emptyMsg');
+    list.innerHTML = '';
+    if (entries.length === 0) {
+      emptyMsg.textContent = searchQuery ? 'Inga träffar för "' + searchQueryDisplay + '".' :
+        hasActiveFilters() ? 'Inga transaktioner matchar filtret.' :
+        'Inga transaktioner ännu den här månaden.';
+      emptyMsg.style.display = 'block';
+    } else {
+      emptyMsg.style.display = 'none';
+      entries.forEach(function (e) {
+        var row = renderEntryRow(e, recurringKeySet.has(normalizeKey(e.note)));
+        list.appendChild(row);
+      });
+    }
+
+    var bd = document.getElementById('breakdown');
+    bd.innerHTML = '';
+    var cats = Object.keys(catTotals).sort(function (a, b) { return catTotals[b] - catTotals[a]; });
+    if (cats.length === 0) {
+      bd.innerHTML = '<div class="empty" style="padding:8px 0;">Inga utgifter registrerade ännu.</div>';
+    } else {
+      var max = catTotals[cats[0]] || 1;
+      cats.forEach(function (c) {
+        var row = document.createElement('div');
+        row.className = 'bd-row';
+        var pct = Math.max(4, Math.round((catTotals[c] / max) * 100));
+        row.innerHTML =
+          '<div class="bd-cat"></div>' +
+          '<div class="bd-bar-track"><div class="bd-bar" style="width:' + pct + '%"></div></div>' +
+          '<div class="bd-amt"></div>';
+        row.querySelector('.bd-cat').textContent = c;
+        row.querySelector('.bd-amt').textContent = fmtMoney(catTotals[c]);
+        bd.appendChild(row);
+      });
+    }
+  }
+
+  function renderEntryRow(e, isRecurring) {
+    var row = document.createElement('div');
+    row.className = 'entry ' + (e.type === 'income' ? 'income' : 'expense');
+
+    if (editingId === e.id) {
+      row.classList.add('editing');
+      row.innerHTML =
+        '<div class="dot"></div>' +
+        '<div class="edit-fields">' +
+          '<input type="number" class="edit-amount" step="0.01" min="0" value="' + (e.amount != null ? e.amount : '') + '" placeholder="Belopp">' +
+          '<input type="date" class="edit-date" value="' + (e.date || '') + '">' +
+          '<input type="text" class="edit-note" value="' + escapeHtml(e.note || '') + '" placeholder="Anteckning" maxlength="80">' +
+        '</div>' +
+        '<div class="edit-actions">' +
+          '<button class="save-edit" aria-label="Spara">✓</button>' +
+          '<button class="cancel-edit" aria-label="Avbryt">✕</button>' +
+        '</div>';
+      row.querySelector('.save-edit').addEventListener('click', function () {
+        var amt = parseFloat(row.querySelector('.edit-amount').value);
+        var date = row.querySelector('.edit-date').value;
+        var note = row.querySelector('.edit-note').value.trim();
+        if (isNaN(amt) || amt <= 0 || !date) {
+          setStatus('Ogiltigt belopp eller datum.');
+          return;
+        }
+        saveEntryEdit(e.id, { amount: amt, date: date, note: note });
+      });
+      row.querySelector('.cancel-edit').addEventListener('click', function () {
+        editingId = null;
+        render();
+      });
+      return row;
+    }
+
+    var amtStr = (e.type === 'income' ? '+' : '−') + fmtMoney(Math.abs(Number(e.amount) || 0));
+    row.innerHTML =
+      '<div class="dot"></div>' +
+      '<div class="meta">' +
+        (isRecurring ? '<span class="recur-badge" title="Återkommande betalning">🔁</span>' : '') +
+        buildCatSelectHtml(e.category) +
+        (e.note ? '<div class="note"></div>' : '') +
+        '<div class="who"></div>' +
+      '</div>' +
+      '<div class="amt"></div>' +
+      '<button class="edit-btn" aria-label="Redigera">✎</button>' +
+      '<button class="del" aria-label="Ta bort">✕</button>';
+    row.querySelector('.cat-inline-select').addEventListener('change', function () {
+      var cat = this.value;
+      if (!cat) return;
+      var ids = getSimilarIds(e.note, e.id);
+      applyCategoryToGroup(ids, cat);
+    });
+    if (e.note) row.querySelector('.note').textContent = e.note;
+    row.querySelector('.who').innerHTML = fmtDateStrShort(e.date) + (e.addedBy ? ' <span class="who-person">· ' + escapeHtml(e.addedBy) + '</span>' : '');
+    row.querySelector('.amt').textContent = amtStr;
+    row.querySelector('.edit-btn').addEventListener('click', function () {
+      editingId = e.id;
+      render();
+    });
+    row.querySelector('.del').addEventListener('click', function () {
+      deleteEntry(e.id);
+    });
+    return row;
+  }
+
+  async function saveEntryEdit(id, fields) {
+    try {
+      if (db) await db.doc('entries/' + id).update(fields);
+      var idx = allEntries.findIndex(function (e) { return e.id === id; });
+      if (idx >= 0) Object.assign(allEntries[idx], fields);
+      editingId = null;
+      setStatus('Transaktionen uppdaterad.');
+      render();
+    } catch (err) {
+      setStatus('Kunde inte spara ändringen.');
+    }
+  }
+
+  function setStatus(msg) {
+    document.getElementById('statusMsg').textContent = msg || '';
+  }
+
+  // ---- Uncategorized expense grouping ----
+  function buildCatSelectHtml(currentCategory) {
+    var uncategorized = isUncategorized({ category: currentCategory });
+    var cls = 'cat-inline-select' + (uncategorized ? ' needs-cat' : '');
+    var html = '<select class="' + cls + '">';
+    if (uncategorized) {
+      html += '<option value="" disabled selected>Välj kategori…</option>';
+    }
+    ALL_CATEGORIES.forEach(function (c) {
+      html += '<option value="' + escapeHtml(c) + '"' + (c === currentCategory ? ' selected' : '') + '>' + escapeHtml(c) + '</option>';
+    });
+    html += '</select>';
+    return html;
+  }
+
+  function isUncategorized(e) {
+    return !e.category || e.category === 'Okategoriserat' || e.category === 'Okategoriserad';
+  }
+
+  var GENERIC_NOTE_KEYS = [
+    'seb kort bank ab', 'swedbank pay', 'nordea kort', 'swish', 'bankgiro',
+    'klarna', 'klarna overl', 'kortköp', 'kortkop'
+  ];
+
+  function normalizeKey(note) {
+    if (!note) return null;
+    var k = note.toLowerCase();
+    k = k.replace(/[0-9]+/g, ' ');
+    k = k.replace(/[^a-zà-öø-ÿ\s]/gi, ' ');
+    k = k.replace(/\s+/g, ' ').trim();
+    if (!k || GENERIC_NOTE_KEYS.indexOf(k) !== -1) return null;
+    return k;
+  }
+
+  function getSimilarIds(note, ownId) {
+    var key = normalizeKey(note);
+    if (!key) return [ownId];
+    var ids = allEntries.filter(function (e) {
+      return e.type === 'expense' && normalizeKey(e.note) === key;
+    }).map(function (e) { return e.id; });
+    return ids.length ? ids : [ownId];
+  }
+
+  var expandedUncatKeys = {};
+
+  function getUncategorizedGroups() {
+    var groups = {};
+    allEntries.forEach(function (e) {
+      if (e.type !== 'expense' || !isUncategorized(e)) return;
+      if (filterPerson && (e.addedBy || '') !== filterPerson) return;
+      var key = normalizeKey(e.note) || ('__id__' + e.id);
+      if (!groups[key]) groups[key] = { key: key, sample: e.note || '(ingen beskrivning)', ids: [], entries: [], total: 0 };
+      groups[key].ids.push(e.id);
+      groups[key].entries.push(e);
+      groups[key].total += Number(e.amount) || 0;
+    });
+    return Object.keys(groups).map(function (k) { return groups[k]; })
+      .sort(function (a, b) { return b.total - a.total; });
+  }
+
+  function renderUncategorizedSection() {
+    var wrap = document.getElementById('uncategorizedWrap');
+    var groups = getUncategorizedGroups();
+    if (!groups.length) {
+      wrap.style.display = 'none';
+      wrap.innerHTML = '';
+      return;
+    }
+    wrap.style.display = 'block';
+    var catOptions = EXPENSE_CATEGORIES.concat(INCOME_CATEGORIES).map(function (c) {
+      return '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>';
+    }).join('');
+    var html = '<div class="card uncategorized-card"><div class="label">Okategoriserade utgifter (' + groups.length + ')</div>';
+    groups.forEach(function (g, i) {
+      var expandable = g.ids.length > 1;
+      var expanded = expandable && expandedUncatKeys[g.key];
+      html += '<div class="uncat-row' + (expandable ? ' expandable' : '') + '" data-i="' + i + '">' +
+        '<div class="uncat-meta"><div class="uncat-desc"></div><div class="uncat-sub"></div>' +
+        (expanded ? '<div class="uncat-detail-list">' + g.entries.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); }).map(function (e) {
+          return '<div class="uncat-detail-item"><span></span><span></span></div>';
+        }).join('') + '</div>' : '') +
+        '</div>' +
+        '<select class="uncat-select"><option value="" disabled selected>Välj kategori…</option>' + catOptions + '</select>' +
+        '</div>';
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('.uncat-row').forEach(function (row) {
+      var g = groups[parseInt(row.getAttribute('data-i'), 10)];
+      var expandable = g.ids.length > 1;
+      var expanded = expandable && expandedUncatKeys[g.key];
+      row.querySelector('.uncat-desc').textContent = g.sample + (expandable ? (expanded ? ' ▾' : ' ▸') : '');
+      row.querySelector('.uncat-sub').textContent =
+        g.ids.length + (g.ids.length > 1 ? ' liknande transaktioner' : ' transaktion') + ' · ' + dateLabelForGroup(g) + ' · ' + fmtMoney(g.total);
+      if (expanded) {
+        var sorted = g.entries.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+        var items = row.querySelectorAll('.uncat-detail-item');
+        sorted.forEach(function (e, idx) {
+          var spans = items[idx].querySelectorAll('span');
+          spans[0].textContent = fmtDateStrShort(e.date) + (e.addedBy ? ' · ' + e.addedBy : '');
+          spans[1].textContent = fmtMoney(Number(e.amount) || 0);
+        });
+      }
+      if (expandable) {
+        row.querySelector('.uncat-meta').addEventListener('click', function (ev) {
+          if (ev.target.closest('.uncat-select')) return;
+          expandedUncatKeys[g.key] = !expandedUncatKeys[g.key];
+          renderUncategorizedSection();
+        });
+      }
+      row.querySelector('.uncat-select').addEventListener('change', function () {
+        var cat = this.value;
+        if (!cat) return;
+        applyCategoryToGroup(g.ids, cat);
+      });
+    });
+  }
+
+  async function applyCategoryToGroup(ids, category) {
+    setStatus('Uppdaterar kategori…');
+    for (var i = 0; i < ids.length; i++) {
+      var id = ids[i];
+      try {
+        if (db) {
+          await db.doc('entries/' + id).update({ category: category });
+        } else {
+          var idx = allEntries.findIndex(function (e) { return e.id === id; });
+          if (idx >= 0) allEntries[idx].category = category;
+        }
+      } catch (e) { /* skip failed row */ }
+    }
+    setStatus(ids.length + (ids.length > 1 ? ' transaktioner' : ' transaktion') + ' satta till "' + category + '".');
+    if (!db) render();
+  }
+
+  var clientId = 'c' + Date.now() + Math.random().toString(36).slice(2, 9);
+  var confettiInitialized = false;
+
+  async function broadcastConfetti(message) {
+    if (!db) return;
+    try {
+      await db.doc('meta/confettiTrigger').set({ message: message, ts: Date.now(), clientId: clientId });
+    } catch (e) { /* ignore */ }
+  }
+
+  function playConfetti(message) {
+    var colors = ['var(--income)', 'var(--expense)', 'var(--accent)'];
+    for (var i = 0; i < 24; i++) {
+      (function () {
+        var piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = (Math.random() * 100) + 'vw';
+        piece.style.background = colors[i % colors.length];
+        piece.style.animationDelay = (Math.random() * 0.3) + 's';
+        piece.style.animationDuration = (1.1 + Math.random() * 0.6) + 's';
+        document.body.appendChild(piece);
+        setTimeout(function () { piece.remove(); }, 2200);
+      })();
+    }
+    if (message) {
+      var toast = document.createElement('div');
+      toast.className = 'celebrate-toast';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      requestAnimationFrame(function () { toast.classList.add('show'); });
+      setTimeout(function () {
+        toast.classList.remove('show');
+        setTimeout(function () { toast.remove(); }, 300);
+      }, 2200);
+    }
+  }
+
+  async function initDb() {
+    try {
+      db = firebase.firestore();
+    } catch (e) {
+      db = null;
+    }
+    if (!db) {
+      setStatus('Kunde inte ansluta till Firestore — kontrollera firebaseConfig.');
+      return;
+    }
+    subscribe();
+  }
+
+  function subscribe() {
+    if (!db) return;
+    try {
+      db.collection('entries').onSnapshot(function (snapshot) {
+        allEntries = (snapshot.docs || snapshot || []).map(function (d) {
+          var data = d.data ? d.data() : d;
+          return Object.assign({ id: d.id || data.id }, data);
+        });
+        render();
+      });
+    } catch (e) {
+      loadOnce();
+    }
+    try {
+      db.doc('meta/lastImport').onSnapshot(function (snap) {
+        lastImportInfo = (snap && snap.exists && snap.data) ? snap.data() : null;
+        renderImportStatus();
+      });
+    } catch (e) { /* ignore */ }
+    try {
+      db.doc('meta/confettiTrigger').onSnapshot(function (snap) {
+        if (!snap || !snap.exists) return;
+        var data = snap.data();
+        if (!confettiInitialized) {
+          confettiInitialized = true;
+          return;
+        }
+        if (data.clientId === clientId) return;
+        playConfetti(data.message);
+      });
+    } catch (e) { /* ignore */ }
+  }
+
+  async function loadOnce() {
+    if (!db) return;
+    try {
+      var res = await db.collection('entries').get();
+      allEntries = (res.docs || []).map(function (d) {
+        var data = d.data ? d.data() : d;
+        return Object.assign({ id: d.id || data.id }, data);
+      });
+      render();
+    } catch (e) {
+      setStatus('Kunde inte läsa in transaktioner.');
+    }
+  }
+
+  async function addEntry(entry) {
+    if (!db) {
+      entry.id = 'local-' + Date.now();
+      allEntries.push(entry);
+      render();
+      return;
+    }
+    try {
+      var id = 'e' + Date.now() + Math.random().toString(36).slice(2, 7);
+      await db.doc('entries/' + id).set(entry);
+      setStatus('');
+    } catch (e) {
+      setStatus('Kunde inte spara transaktionen. Försök igen.');
+    }
+  }
+
+  async function deleteEntry(id) {
+    if (!id) return;
+    if (!db) {
+      allEntries = allEntries.filter(function (e) { return e.id !== id; });
+      render();
+      return;
+    }
+    try {
+      await db.doc('entries/' + id).delete();
+    } catch (e) {
+      setStatus('Kunde inte ta bort transaktionen.');
+    }
+  }
+
+  document.getElementById('btnIncome').addEventListener('click', function () { setType('income'); });
+  document.getElementById('btnExpense').addEventListener('click', function () { setType('expense'); });
+
+  document.getElementById('prevMonth').addEventListener('click', function () {
+    viewMonth.setMonth(viewMonth.getMonth() - 1);
+    render();
+  });
+  document.getElementById('nextMonth').addEventListener('click', function () {
+    viewMonth.setMonth(viewMonth.getMonth() + 1);
+    render();
+  });
+
+  (function setupHeroSwipe() {
+    var zone = document.getElementById('heroCard');
+    var startX = 0, startY = 0, tracking = false;
+    zone.addEventListener('touchstart', function (ev) {
+      if (ev.touches.length !== 1) return;
+      startX = ev.touches[0].clientX;
+      startY = ev.touches[0].clientY;
+      tracking = true;
+    }, { passive: true });
+    zone.addEventListener('touchend', function (ev) {
+      if (!tracking) return;
+      tracking = false;
+      var touch = ev.changedTouches[0];
+      var dx = touch.clientX - startX;
+      var dy = touch.clientY - startY;
+      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      var figure = zone.querySelector('.hero-figure');
+      var stats = zone.querySelector('.hero-stats');
+      var bars = document.getElementById('heroBars');
+      var forecastEl = document.getElementById('heroForecast');
+      if (figure) figure.style.opacity = '0';
+      if (stats) stats.style.opacity = '0';
+      if (bars) bars.style.opacity = '0';
+      if (forecastEl) forecastEl.style.opacity = '0';
+      switchViewBySwipe(dx < 0 ? 1 : -1);
+      requestAnimationFrame(function () {
+        if (figure) figure.style.opacity = '1';
+        if (stats) stats.style.opacity = '1';
+        if (bars) bars.style.opacity = '1';
+        if (forecastEl) forecastEl.style.opacity = '1';
+      });
+    }, { passive: true });
+  })();
+
+  document.getElementById('searchInput').addEventListener('input', function () {
+    searchQueryDisplay = this.value.trim();
+    searchQuery = searchQueryDisplay.toLowerCase();
+    render();
+  });
+
+  (function populateFilterCategory() {
+    var sel = document.getElementById('filterCategory');
+    var html = '<option value="">Alla kategorier</option>' +
+      '<option value="__uncategorized__">Okategoriserat</option>';
+    ALL_CATEGORIES.forEach(function (c) {
+      html += '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>';
+    });
+    sel.innerHTML = html;
+  })();
+
+  var modeSettingsOpen = false;
+  document.getElementById('toggleModeSettings').addEventListener('click', function () {
+    modeSettingsOpen = !modeSettingsOpen;
+    document.getElementById('modeSettings').style.display = modeSettingsOpen ? 'block' : 'none';
+  });
+  function updateModeLink() {
+    document.getElementById('toggleModeSettings').textContent =
+      (budgetMode === 'period' ? 'Löneperiod' : 'Kalendermånad') + ' ⚙';
+  }
+  updateModeLink();
+
+  document.querySelectorAll('.period-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      budgetMode = this.getAttribute('data-mode');
+      document.querySelectorAll('.period-btn').forEach(function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+      document.getElementById('paydayRow').style.display = budgetMode === 'period' ? 'block' : 'none';
+      updateModeLink();
+      render();
+    });
+  });
+  document.getElementById('paydayInput').addEventListener('change', function () {
+    var v = parseInt(this.value, 10);
+    if (isNaN(v) || v < 1) v = 1;
+    if (v > 28) v = 28;
+    this.value = v;
+    payday = v;
+    render();
+  });
+
+  document.getElementById('toggleTrend').addEventListener('click', function () {
+    trendOpen = !trendOpen;
+    this.classList.toggle('active', trendOpen);
+    document.getElementById('trendPanel').style.display = trendOpen ? 'block' : 'none';
+    if (trendOpen) renderTrendPanel();
+  });
+  document.getElementById('toggleRecurring').addEventListener('click', function () {
+    recurringOpen = !recurringOpen;
+    this.classList.toggle('active', recurringOpen);
+    document.getElementById('recurringPanel').style.display = recurringOpen ? 'block' : 'none';
+    if (recurringOpen) renderRecurringPanel();
+  });
+  document.getElementById('toggleReport').addEventListener('click', function () {
+    reportOpen = !reportOpen;
+    this.classList.toggle('active', reportOpen);
+    document.getElementById('reportPanel').style.display = reportOpen ? 'block' : 'none';
+    if (reportOpen) renderReportPanel();
+  });
+
+  document.getElementById('filterCategory').addEventListener('change', function () {
+    filterCategory = this.value;
+    render();
+  });
+  document.getElementById('filterType').addEventListener('change', function () {
+    filterType = this.value;
+    render();
+  });
+  document.getElementById('sortMode').addEventListener('change', function () {
+    sortMode = this.value;
+    render();
+  });
+
+  document.getElementById('catInput').addEventListener('change', function () {
+    document.getElementById('customCatRow').classList.toggle('show', this.value === CUSTOM_VALUE);
+  });
+
+  document.getElementById('dateInput').value = todayISO();
+  refreshQuickAddCategories();
+
+  document.getElementById('addForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var catSel = document.getElementById('catInput').value;
+    var cat = catSel === CUSTOM_VALUE ? document.getElementById('customCatInput').value.trim() : catSel;
+    var amt = parseFloat(document.getElementById('amtInput').value);
+    var note = document.getElementById('noteInput').value.trim();
+    var date = document.getElementById('dateInput').value || todayISO();
+    var who = document.getElementById('whoInput').value.trim();
+    if (!cat || !amt || amt <= 0) return;
+
+    addEntry({
+      type: currentType,
+      category: cat,
+      amount: amt,
+      note: note,
+      date: date,
+      addedBy: who,
+      createdAt: Date.now()
+    });
+
+    document.getElementById('customCatInput').value = '';
+    document.getElementById('customCatRow').classList.remove('show');
+    document.getElementById('amtInput').value = '';
+    document.getElementById('noteInput').value = '';
+    document.getElementById('dateInput').value = todayISO();
+  });
+
+  // ---- CSV import ----
+  var importSource = 'bank';
+  var parsedCsv = null; // {headers, rows, delim}
+  var previewRows = [];
+
+  function splitCsvLine(line, delim) {
+    var result = [];
+    var cur = '';
+    var inQuotes = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+        else { inQuotes = !inQuotes; }
+      } else if (ch === delim && !inQuotes) {
+        result.push(cur); cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    result.push(cur);
+    return result.map(function (s) { return s.trim().replace(/^"|"$/g, ''); });
+  }
+
+  function parseCSV(text) {
+    var lines = text.split(/\r\n|\n|\r/).filter(function (l) { return l.trim().length > 0; });
+    if (lines.length === 0) return null;
+    var semi = (lines[0].match(/;/g) || []).length;
+    var comma = (lines[0].match(/,/g) || []).length;
+    var tab = (lines[0].match(/\t/g) || []).length;
+    var delim = tab > semi && tab > comma ? '\t' : (semi >= comma ? ';' : ',');
+    var headers = splitCsvLine(lines[0], delim);
+    var rows = lines.slice(1).map(function (l) { return splitCsvLine(l, delim); });
+    return { headers: headers, rows: rows, delim: delim };
+  }
+
+  function parseAmount(str) {
+    if (str === undefined || str === null) return NaN;
+    str = String(str).trim();
+    if (!str) return NaN;
+    var s;
+    if (str.indexOf(',') !== -1) {
+      s = str.replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+    } else {
+      s = str.replace(/\s/g, '');
+    }
+    s = s.replace(/[^\d.\-]/g, '');
+    return parseFloat(s);
+  }
+
+  function normalizeDate(str) {
+    if (!str) return todayISO();
+    str = String(str).trim();
+    var m;
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
+    if ((m = str.match(/^(\d{2})[\/\.](\d{2})[\/\.](\d{4})$/))) return m[3] + '-' + m[2] + '-' + m[1];
+    if ((m = str.match(/^(\d{4})(\d{2})(\d{2})$/))) return m[1] + '-' + m[2] + '-' + m[3];
+    var d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      var tz = d.getTimezoneOffset() * 60000;
+      return new Date(d - tz).toISOString().slice(0, 10);
+    }
+    return todayISO();
+  }
+
+  function hashId(str) {
+    var hash = 5381;
+    for (var i = 0; i < str.length; i++) {
+      hash = ((hash * 33) ^ str.charCodeAt(i)) >>> 0;
+    }
+    return 'imp' + hash.toString(36);
+  }
+
+  function guessColumn(headers, keywords) {
+    for (var i = 0; i < headers.length; i++) {
+      var h = headers[i].toLowerCase();
+      for (var k = 0; k < keywords.length; k++) {
+        if (h.indexOf(keywords[k]) !== -1) return i;
+      }
+    }
+    return -1;
+  }
+
+  function fillSelect(sel, headers, guessIdx, allowNone) {
+    sel.innerHTML = '';
+    if (allowNone) {
+      var opt0 = document.createElement('option');
+      opt0.value = '-1';
+      opt0.textContent = '— Ingen —';
+      sel.appendChild(opt0);
+    }
+    headers.forEach(function (h, i) {
+      var opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = h || ('Kolumn ' + (i + 1));
+      sel.appendChild(opt);
+    });
+    sel.value = String(guessIdx);
+  }
+
+  function openImportPanel() {
+    document.getElementById('importOverlay').hidden = false;
+    document.getElementById('mapSection').style.display = 'none';
+    document.getElementById('csvText').value = '';
+    document.getElementById('csvFile').value = '';
+  }
+  function closeImportPanel() {
+    document.getElementById('importOverlay').hidden = true;
+  }
+
+  document.getElementById('openImport').addEventListener('click', openImportPanel);
+  document.getElementById('closeImport1').addEventListener('click', closeImportPanel);
+  document.getElementById('closeImport2').addEventListener('click', closeImportPanel);
+
+  document.getElementById('srcBank').addEventListener('click', function () {
+    importSource = 'bank';
+    this.classList.add('active');
+    document.getElementById('srcCard').classList.remove('active');
+  });
+  document.getElementById('srcCard').addEventListener('click', function () {
+    importSource = 'card';
+    this.classList.add('active');
+    document.getElementById('srcBank').classList.remove('active');
+  });
+
+  document.getElementById('csvFile').addEventListener('change', function (ev) {
+    var file = ev.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      document.getElementById('csvText').value = e.target.result;
+    };
+    reader.readAsText(file, 'utf-8');
+  });
+
+  document.getElementById('parseBtn').addEventListener('click', function () {
+    var text = document.getElementById('csvText').value;
+    var parsed = parseCSV(text);
+    if (!parsed || parsed.rows.length === 0) {
+      setStatus('Kunde inte tolka någon data. Kontrollera att CSV-innehåll finns inklistrat.');
+      return;
+    }
+    parsedCsv = parsed;
+    var dateGuess = guessColumn(parsed.headers, ['datum', 'date', 'bokf']);
+    var amtGuess = guessColumn(parsed.headers, ['belopp', 'amount', 'summa', 'saldo förändring', 'värde']);
+    var descGuess = guessColumn(parsed.headers, ['text', 'beskrivning', 'mottagare', 'rubrik', 'specifikation', 'butik', 'transaktion']);
+    var catGuess = guessColumn(parsed.headers, ['kategori', 'category']);
+    if (dateGuess === -1) dateGuess = 0;
+    if (amtGuess === -1) amtGuess = parsed.headers.length > 1 ? 1 : 0;
+    if (descGuess === -1) descGuess = parsed.headers.length > 2 ? 2 : 0;
+
+    fillSelect(document.getElementById('mapDate'), parsed.headers, dateGuess, false);
+    fillSelect(document.getElementById('mapAmount'), parsed.headers, amtGuess, false);
+    fillSelect(document.getElementById('mapDesc'), parsed.headers, descGuess, false);
+    fillSelect(document.getElementById('mapCategory'), parsed.headers, catGuess, true);
+    populateCategorySelect(document.getElementById('defaultCategory'), EXPENSE_CATEGORIES, false);
+    var defSel = document.getElementById('defaultCategory');
+    defSel.insertAdjacentHTML('afterbegin', '<option value="">Lämna okategoriserad</option>');
+    defSel.value = '';
+
+    document.getElementById('mapSection').style.display = 'block';
+    updatePreview();
+  });
+
+  ['mapDate', 'mapAmount', 'mapDesc', 'mapCategory', 'defaultCategory', 'invertSign'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', updatePreview);
+    document.getElementById(id).addEventListener('input', updatePreview);
+  });
+
+  function matchCategory(text) {
+    if (!text) return null;
+    var t = text.trim().toLowerCase();
+    for (var i = 0; i < ALL_CATEGORIES.length; i++) {
+      if (ALL_CATEGORIES[i].toLowerCase() === t) return ALL_CATEGORIES[i];
+    }
+    return null;
+  }
+
+  function buildPreviewRows() {
+    if (!parsedCsv) return [];
+    var dateCol = parseInt(document.getElementById('mapDate').value, 10);
+    var amtCol = parseInt(document.getElementById('mapAmount').value, 10);
+    var descCol = parseInt(document.getElementById('mapDesc').value, 10);
+    var catCol = parseInt(document.getElementById('mapCategory').value, 10);
+    var invert = document.getElementById('invertSign').checked;
+    var defaultCat = document.getElementById('defaultCategory').value;
+
+    return parsedCsv.rows.map(function (r) {
+      var rawAmt = parseAmount(r[amtCol]);
+      if (isNaN(rawAmt)) return null;
+      var signedAmt = invert ? -rawAmt : rawAmt;
+      var type = signedAmt < 0 ? 'expense' : 'income';
+      var amount = Math.abs(signedAmt);
+      var date = normalizeDate(r[dateCol]);
+      var desc = (r[descCol] || '').trim();
+
+      var category = null;
+      if (catCol >= 0) category = matchCategory(r[catCol]);
+      if (!category) category = guessCategoryFromText(desc);
+      if (!category) category = type === 'income' ? 'Övrig inkomst' : defaultCat;
+
+      var sourceLabel = importSource === 'card' ? 'Kortimport' : 'Bankimport';
+      var owner = document.getElementById('importOwner').value.trim();
+      var addedBy = owner || sourceLabel;
+      var id = hashId(sourceLabel + '|' + date + '|' + signedAmt.toFixed(2) + '|' + desc);
+      return { id: id, type: type, amount: amount, date: date, note: desc, category: category, addedBy: addedBy, source: sourceLabel, createdAt: Date.now() };
+    }).filter(Boolean);
+  }
+
+  function updatePreview() {
+    previewRows = buildPreviewRows();
+    var note = document.getElementById('previewNote');
+    note.textContent = previewRows.length + ' rader tolkade av ' + (parsedCsv ? parsedCsv.rows.length : 0) + '. Kategori gissas automatiskt men går att ändra per rad nedan. Redan importerade transaktioner med samma datum/belopp/text skrivs över istället för att dubbleras.';
+    var table = document.getElementById('previewTable');
+    var html = '<thead><tr><th>Datum</th><th>Beskrivning</th><th>Kategori</th><th>Belopp</th></tr></thead><tbody>';
+    previewRows.slice(0, 25).forEach(function (row, i) {
+      var cats = row.type === 'income' ? INCOME_CATEGORIES.concat(EXPENSE_CATEGORIES) : EXPENSE_CATEGORIES.concat(INCOME_CATEGORIES);
+      var options = '<option value=""' + (row.category ? '' : ' selected') + '>Lämna okategoriserad</option>' +
+        cats.map(function (c) {
+          return '<option value="' + escapeHtml(c) + '"' + (c === row.category ? ' selected' : '') + '>' + escapeHtml(c) + '</option>';
+        }).join('');
+      html += '<tr><td>' + row.date + '</td><td>' + escapeHtml(row.note).slice(0, 30) + '</td>' +
+        '<td><select class="row-cat" data-idx="' + i + '">' + options + '</select></td>' +
+        '<td class="' + (row.type === 'income' ? 'amt-income' : 'amt-expense') + '">' + (row.type === 'income' ? '+' : '−') + fmtMoney(row.amount) + '</td></tr>';
+    });
+    if (previewRows.length > 25) {
+      html += '<tr><td colspan="4" style="text-align:center;color:var(--text-dim);">… och ' + (previewRows.length - 25) + ' till (standardkategori/gissning används för dessa)</td></tr>';
+    }
+    html += '</tbody>';
+    table.innerHTML = html;
+    table.querySelectorAll('.row-cat').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        var idx = parseInt(this.getAttribute('data-idx'), 10);
+        if (previewRows[idx]) previewRows[idx].category = this.value;
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  document.getElementById('confirmImport').addEventListener('click', async function () {
+    if (!previewRows.length) { closeImportPanel(); return; }
+    var btn = this;
+    btn.disabled = true;
+    var okCount = 0;
+    var skippedCount = 0;
+    var quotaHit = false;
+    var CHUNK_SIZE = 25;
+    var existingIds = {};
+    allEntries.forEach(function (e) { existingIds[e.id] = true; });
+    var rowsToWrite = previewRows.filter(function (row) {
+      if (existingIds[row.id]) { skippedCount++; return false; }
+      return true;
+    });
+    var total = rowsToWrite.length;
+
+    for (var start = 0; start < total; start += CHUNK_SIZE) {
+      var chunk = rowsToWrite.slice(start, start + CHUNK_SIZE);
+      btn.textContent = 'Importerar… (' + Math.min(start + CHUNK_SIZE, total) + '/' + total + ')';
+      var results = await Promise.all(chunk.map(function (row) {
+        var entry = { type: row.type, amount: row.amount, date: row.date, note: row.note, category: row.category, addedBy: row.addedBy, createdAt: row.createdAt };
+        if (db) {
+          return db.doc('entries/' + row.id).set(entry).then(function () { return { ok: true }; }).catch(function (e) { return { ok: false, code: e && e.code }; });
+        }
+        entry.id = row.id;
+        var idx = allEntries.findIndex(function (e) { return e.id === row.id; });
+        if (idx >= 0) allEntries[idx] = entry; else allEntries.push(entry);
+        return Promise.resolve({ ok: true });
+      }));
+      results.forEach(function (res) {
+        if (res.ok) okCount++;
+        if (res.code === 'quota_exceeded') quotaHit = true;
+      });
+      if (quotaHit) break;
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Importera';
+    closeImportPanel();
+    setStatus(
+      quotaHit
+        ? okCount + ' nya importerade (databasen är full, 5000 poster max — resten fick inte plats). ' + skippedCount + ' fanns redan och rördes inte.'
+        : okCount + ' nya transaktioner importerade. ' + (skippedCount > 0 ? skippedCount + ' fanns redan och rördes inte (kategorier bevarade).' : '')
+    );
+    if (!db) render();
+    if (okCount > 0) {
+      var ownerName = document.getElementById('importOwner').value.trim() || null;
+      var importedAt = { date: todayISO(), by: ownerName };
+      if (db) {
+        try { await db.doc('meta/lastImport').set(importedAt); } catch (e) { /* ignore */ }
+      } else {
+        lastImportInfo = importedAt;
+        renderImportStatus();
+      }
+      var celebrateMsg = okCount + (okCount === 1 ? ' transaktion importerad! 🎉' : ' transaktioner importerade! 🎉');
+      playConfetti(celebrateMsg);
+      broadcastConfetti(celebrateMsg);
+    }
+  });
+
+  render();
+  initDb();
+})();
+</script>
+</body>
+</html>
