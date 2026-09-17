@@ -3079,6 +3079,18 @@
       return true;
     });
     var total = rowsToWrite.length;
+
+    if (total > 0) {
+      var ownerNameEarly = document.getElementById('importOwner').value.trim() || null;
+      var importedAtEarly = { date: todayISO(), by: ownerNameEarly };
+      if (db) {
+        try { await db.doc('meta/lastImport').set(importedAtEarly); } catch (e) { /* ignore */ }
+      } else {
+        lastImportInfo = importedAtEarly;
+        renderImportStatus();
+      }
+    }
+
     var progressWrap = document.getElementById('importProgressWrap');
     var progressBar = document.getElementById('importProgressBar');
     var progressLabel = document.getElementById('importProgressLabel');
@@ -3123,14 +3135,6 @@
     );
     if (!db) render();
     if (okCount > 0) {
-      var ownerName = document.getElementById('importOwner').value.trim() || null;
-      var importedAt = { date: todayISO(), by: ownerName };
-      if (db) {
-        try { await db.doc('meta/lastImport').set(importedAt); } catch (e) { /* ignore */ }
-      } else {
-        lastImportInfo = importedAt;
-        renderImportStatus();
-      }
       var celebrateMsg = okCount + (okCount === 1 ? ' transaktion importerad! 🎉' : ' transaktioner importerade! 🎉');
       playConfetti(celebrateMsg);
       broadcastConfetti(celebrateMsg);
