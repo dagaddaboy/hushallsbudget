@@ -448,6 +448,18 @@
   .payday-nudge-text strong { display: block; font-size: 0.94rem; margin-bottom: 1px; }
   .payday-nudge-arrow { color: var(--accent); font-size: 1.1rem; flex-shrink: 0; }
 
+  .error-banner {
+    background: #FCE4E2;
+    color: #8A2418;
+    border: 1px solid var(--expense);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 0 0 14px;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
   .import-progress-wrap { margin: 12px 0 4px; }
   .import-progress-track {
     height: 8px;
@@ -1021,6 +1033,7 @@
     <span class="topbar-title">Hushållsbudget</span>
     <span class="topbar-sub">Delad budget</span>
   </header>
+  <div id="errorBanner" class="error-banner" style="display:none;"></div>
 
   <div class="view-tabs" id="viewTabs"></div>
 
@@ -2144,7 +2157,7 @@
     });
   }
 
-  function render() {
+  function renderInner() {
     renderMonthLabel();
     renderPaydayNudge();
     renderUncategorizedSection();
@@ -2222,6 +2235,21 @@
         row.querySelector('.bd-amt').textContent = fmtMoney(catTotals[c]);
         bd.appendChild(row);
       });
+    }
+  }
+
+  function render() {
+    try {
+      renderInner();
+      var errBanner = document.getElementById('errorBanner');
+      if (errBanner) errBanner.style.display = 'none';
+    } catch (err) {
+      console.error('Render error:', err);
+      var el = document.getElementById('errorBanner');
+      if (el) {
+        el.style.display = 'block';
+        el.textContent = '⚠ Ett fel uppstod när appen skulle visa datan: ' + (err && err.message ? err.message : String(err)) + '. Ta en skärmdump av det här meddelandet.';
+      }
     }
   }
 
@@ -2507,10 +2535,14 @@
     if (!db) return;
     try {
       db.collection('entries').onSnapshot(function (snapshot) {
-        allEntries = (snapshot.docs || snapshot || []).map(function (d) {
-          var data = d.data ? d.data() : d;
-          return Object.assign({ id: d.id || data.id }, data);
-        });
+        try {
+          allEntries = (snapshot.docs || snapshot || []).map(function (d) {
+            var data = d.data ? d.data() : d;
+            return Object.assign({ id: d.id || data.id }, data);
+          });
+        } catch (mapErr) {
+          console.error('Snapshot processing error:', mapErr);
+        }
         render();
       });
     } catch (e) {
