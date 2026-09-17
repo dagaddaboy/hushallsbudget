@@ -1594,13 +1594,14 @@
     var catTotals = {};
     var prevCatTotals = {};
     var uncatCount = 0;
+    var uncatAmount = 0;
     var biggest = null;
     var peopleTotals = {};
     entries.forEach(function (e) {
       if (e.type !== 'expense') return;
       var amt = Number(e.amount) || 0;
       var cat = isUncategorized(e) ? null : e.category;
-      if (!cat) uncatCount++;
+      if (!cat) { uncatCount++; uncatAmount += amt; }
       else catTotals[cat] = (catTotals[cat] || 0) + amt;
       if (!biggest || amt > biggest.amount) biggest = e;
       var person = e.addedBy || 'Okänd';
@@ -1631,10 +1632,12 @@
 
     var funFacts = computeFunFacts(range, entries);
     var insight = computeInsight(cur, prev, catTotals, prevCatTotals, prevEntries.length);
+    var categorizedPct = cur.expense > 0 ? Math.round(((cur.expense - uncatAmount) / cur.expense) * 100) : null;
 
     return {
       range: range, cur: cur, prev: prev, topCats: topCats, biggest: biggest,
-      uncatCount: uncatCount, expenseCount: expenseCount, avgExpense: avgExpense,
+      uncatCount: uncatCount, uncatAmount: uncatAmount, categorizedPct: categorizedPct,
+      expenseCount: expenseCount, avgExpense: avgExpense,
       savingsRate: savingsRate, recurringCount: recurring.length, recurringTotal: recurringTotal,
       peopleList: peopleList, funFacts: funFacts, insight: insight
     };
@@ -1757,6 +1760,7 @@
       '<div class="report-stat"><div class="report-stat-label">Utgifter</div><div class="report-stat-value expense-text"></div>' + deltaHtml(r.cur.expense, r.prev.expense, true) + '</div>' +
       '<div class="report-stat"><div class="report-stat-label">Kvar</div><div class="report-stat-value"></div></div>' +
       '<div class="report-stat"><div class="report-stat-label">Sparkvot</div><div class="report-stat-value"></div></div>' +
+      (r.categorizedPct !== null ? '<div class="report-stat"><div class="report-stat-label">Kategoriserat</div><div class="report-stat-value" id="reportCatPct"></div></div>' : '') +
       '</div>';
 
     if (r.topCats.length) {
@@ -1796,6 +1800,12 @@
     statValues[3].textContent = r.savingsRate === null ? '–' : Math.round(r.savingsRate) + '%';
     statValues[3].classList.toggle('expense-text', r.savingsRate !== null && r.savingsRate < 0);
     statValues[3].classList.toggle('income-text', r.savingsRate !== null && r.savingsRate >= 0);
+    var catPctEl = document.getElementById('reportCatPct');
+    if (catPctEl) {
+      catPctEl.textContent = r.categorizedPct + '%';
+      catPctEl.classList.toggle('expense-text', r.categorizedPct < 80);
+      catPctEl.classList.toggle('income-text', r.categorizedPct >= 80);
+    }
 
     var catLines = panel.querySelectorAll('.report-line');
     var li = 0;
@@ -1850,7 +1860,7 @@
 
     var nag = panel.querySelector('.report-nag');
     if (nag) {
-      nag.textContent = '⚠ ' + r.uncatCount + ' utgift' + (r.uncatCount > 1 ? 'er' : '') + ' saknar fortfarande kategori — kolla Okategoriserat innan rapporten är komplett.';
+      nag.textContent = '⚠ ' + r.categorizedPct + '% kategoriserat — ' + r.uncatCount + ' utgift' + (r.uncatCount > 1 ? 'er' : '') + ' (' + fmtMoney(r.uncatAmount) + ') saknar fortfarande kategori.';
     }
   }
 
