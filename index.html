@@ -433,6 +433,21 @@
   .import-status.warn { color: #b8862f; }
   .import-status.stale { color: var(--expense); font-weight: 600; }
 
+  .payday-nudge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    cursor: pointer;
+  }
+  .payday-nudge-text { flex: 1; font-size: 0.86rem; color: var(--text); line-height: 1.35; }
+  .payday-nudge-text strong { display: block; font-size: 0.94rem; margin-bottom: 1px; }
+  .payday-nudge-arrow { color: var(--accent); font-size: 1.1rem; flex-shrink: 0; }
+
   .import-progress-wrap { margin: 12px 0 4px; }
   .import-progress-track {
     height: 8px;
@@ -1069,6 +1084,8 @@
     <button type="submit" class="submit-btn">Lägg till</button>
   </form>
 
+  <div id="paydayNudge" class="payday-nudge" style="display:none;"></div>
+
   <div class="toolbar-row">
     <button type="button" class="toolbar-btn" id="openImport"><span class="toolbar-icon">⇪</span>Importera</button>
     <button type="button" class="toolbar-btn" id="toggleTrend"><span class="toolbar-icon">📈</span>Trend</button>
@@ -1467,6 +1484,31 @@
     var now = new Date();
     return Math.floor((now - d) / 86400000);
   }
+
+  function daysUntilPayday() {
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var y = today.getFullYear(), m = today.getMonth(), d = today.getDate();
+    var thisMonthPayday = new Date(y, m, payday);
+    var target = d <= payday ? thisMonthPayday : new Date(y, m + 1, payday);
+    return Math.round((target - today) / 86400000);
+  }
+
+  function renderPaydayNudge() {
+    var el = document.getElementById('paydayNudge');
+    var days = daysUntilPayday();
+    if (days < 0 || days > 3) {
+      el.style.display = 'none';
+      return;
+    }
+    var label = days === 0 ? 'Löning idag' : days === 1 ? 'Löning imorgon' : 'Löning om ' + days + ' dagar';
+    el.innerHTML =
+      '<div class="payday-nudge-text"><strong>' + label + '</strong>Bra läge att kolla igenom rapporten innan nästa period börjar.</div>' +
+      '<div class="payday-nudge-arrow">→</div>';
+    el.style.display = 'flex';
+  }
+
+  document.getElementById('paydayNudge').addEventListener('click', openReportPanel);
 
   function renderImportStatus() {
     var el = document.getElementById('importStatus');
@@ -2104,6 +2146,7 @@
 
   function render() {
     renderMonthLabel();
+    renderPaydayNudge();
     renderUncategorizedSection();
     renderSettlementWarning();
     renderImportStatus();
@@ -2642,6 +2685,13 @@
     document.getElementById('recurringPanel').style.display = recurringOpen ? 'block' : 'none';
     if (recurringOpen) renderRecurringPanel();
   });
+  function openReportPanel() {
+    reportOpen = true;
+    document.getElementById('toggleReport').classList.add('active');
+    document.getElementById('reportPanel').style.display = 'block';
+    renderReportPanel();
+  }
+
   document.getElementById('toggleReport').addEventListener('click', function () {
     reportOpen = !reportOpen;
     this.classList.toggle('active', reportOpen);
