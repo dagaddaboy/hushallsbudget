@@ -433,6 +433,28 @@
   .import-status.warn { color: #b8862f; }
   .import-status.stale { color: var(--expense); font-weight: 600; }
 
+  .import-progress-wrap { margin: 12px 0 4px; }
+  .import-progress-track {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .import-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.15s ease-out;
+  }
+  .import-progress-label {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+
   .confetti-piece {
     position: fixed;
     top: -12px;
@@ -1120,6 +1142,10 @@
       <div class="preview-note" id="previewNote"></div>
       <div class="preview-table">
         <table id="previewTable"></table>
+      </div>
+      <div class="import-progress-wrap" id="importProgressWrap" style="display:none;">
+        <div class="import-progress-track"><div class="import-progress-bar" id="importProgressBar"></div></div>
+        <div class="import-progress-label" id="importProgressLabel"></div>
       </div>
       <div class="panel-actions">
         <button type="button" class="btn-secondary" id="closeImport2">Avbryt</button>
@@ -2845,10 +2871,22 @@
       return true;
     });
     var total = rowsToWrite.length;
+    var progressWrap = document.getElementById('importProgressWrap');
+    var progressBar = document.getElementById('importProgressBar');
+    var progressLabel = document.getElementById('importProgressLabel');
+    if (total > 0) {
+      progressWrap.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressLabel.textContent = '0% (0/' + total + ')';
+    }
 
     for (var start = 0; start < total; start += CHUNK_SIZE) {
       var chunk = rowsToWrite.slice(start, start + CHUNK_SIZE);
-      btn.textContent = 'Importerar… (' + Math.min(start + CHUNK_SIZE, total) + '/' + total + ')';
+      var doneSoFar = Math.min(start + CHUNK_SIZE, total);
+      var pct = Math.round((doneSoFar / total) * 100);
+      btn.textContent = 'Importerar… ' + pct + '%';
+      progressBar.style.width = pct + '%';
+      progressLabel.textContent = pct + '% (' + doneSoFar + '/' + total + ')';
       var results = await Promise.all(chunk.map(function (row) {
         var entry = { type: row.type, amount: row.amount, date: row.date, note: row.note, category: row.category, addedBy: row.addedBy, createdAt: row.createdAt };
         if (db) {
@@ -2868,6 +2906,7 @@
 
     btn.disabled = false;
     btn.textContent = 'Importera';
+    progressWrap.style.display = 'none';
     closeImportPanel();
     setStatus(
       quotaHit
