@@ -695,6 +695,21 @@
   /* ---- Edit mode ---- */
   .entry.editing { flex-wrap: wrap; align-items: stretch; }
   .edit-fields { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+  .edit-type-toggle { display: flex; gap: 4px; }
+  .edit-type-btn {
+    flex: 1;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-dim);
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .edit-type-btn.active[data-type="income"] { background: var(--income); color: var(--surface); border-color: var(--income); }
+  .edit-type-btn.active[data-type="expense"] { background: var(--expense); color: var(--surface); border-color: var(--expense); }
   .edit-fields input {
     padding: 7px 8px;
     border-radius: 8px;
@@ -2063,9 +2078,14 @@
 
     if (editingId === e.id) {
       row.classList.add('editing');
+      var editType = e.type === 'income' ? 'income' : 'expense';
       row.innerHTML =
         '<div class="dot"></div>' +
         '<div class="edit-fields">' +
+          '<div class="edit-type-toggle">' +
+            '<button type="button" class="edit-type-btn' + (editType === 'expense' ? ' active' : '') + '" data-type="expense">Utgift</button>' +
+            '<button type="button" class="edit-type-btn' + (editType === 'income' ? ' active' : '') + '" data-type="income">Inkomst</button>' +
+          '</div>' +
           '<input type="number" class="edit-amount" step="0.01" min="0" value="' + (e.amount != null ? e.amount : '') + '" placeholder="Belopp">' +
           '<input type="date" class="edit-date" value="' + (e.date || '') + '">' +
           '<input type="text" class="edit-note" value="' + escapeHtml(e.note || '') + '" placeholder="Anteckning" maxlength="80">' +
@@ -2074,6 +2094,12 @@
           '<button class="save-edit" aria-label="Spara">✓</button>' +
           '<button class="cancel-edit" aria-label="Avbryt">✕</button>' +
         '</div>';
+      row.querySelectorAll('.edit-type-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          editType = btn.getAttribute('data-type');
+          row.querySelectorAll('.edit-type-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        });
+      });
       row.querySelector('.save-edit').addEventListener('click', function () {
         var amt = parseFloat(row.querySelector('.edit-amount').value);
         var date = row.querySelector('.edit-date').value;
@@ -2082,7 +2108,7 @@
           setStatus('Ogiltigt belopp eller datum.');
           return;
         }
-        saveEntryEdit(e.id, { amount: amt, date: date, note: note });
+        saveEntryEdit(e.id, { amount: amt, date: date, note: note, type: editType });
       });
       row.querySelector('.cancel-edit').addEventListener('click', function () {
         editingId = null;
