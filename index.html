@@ -1046,10 +1046,10 @@
     <button type="button" class="hero-mode-link" id="toggleModeSettings">Kalendermånad ⚙</button>
     <div class="mode-settings" id="modeSettings" style="display:none;">
       <div class="period-toggle" id="periodToggle">
-        <button type="button" class="period-btn active" data-mode="calendar">Kalendermånad</button>
-        <button type="button" class="period-btn" data-mode="period">Löneperiod</button>
+        <button type="button" class="period-btn" data-mode="calendar">Kalendermånad</button>
+        <button type="button" class="period-btn active" data-mode="period">Löneperiod</button>
       </div>
-      <div class="payday-row" id="paydayRow" style="display:none;">
+      <div class="payday-row" id="paydayRow" style="display:block;">
         Ungefärlig lönedag: <input type="number" id="paydayInput" min="1" max="28" value="25">:e (uppskattning tills lönen faktiskt kommit in — då används det riktiga datumet)
       </div>
     </div>
@@ -1310,7 +1310,7 @@
     return new Date(d - tz).toISOString().slice(0, 10);
   }
 
-  var budgetMode = 'calendar';
+  var budgetMode = 'period';
   var payday = 25;
 
   function fmtDateShort(d) {
