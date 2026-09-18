@@ -1269,6 +1269,40 @@
     populateCategorySelect(sel, cats, true);
   }
 
+  var learnedCategoryCache = null;
+  var learnedCategoryCacheSize = -1;
+
+  function buildLearnedCategoryMap() {
+    var map = {};
+    allEntries.forEach(function (e) {
+      if (e.type !== 'expense' || isUncategorized(e)) return;
+      var key = normalizeKey(e.note);
+      if (!key) return;
+      if (!map[key]) map[key] = {};
+      map[key][e.category] = (map[key][e.category] || 0) + 1;
+    });
+    var resolved = {};
+    Object.keys(map).forEach(function (key) {
+      var counts = map[key];
+      var bestCat = null, bestCount = 0;
+      Object.keys(counts).forEach(function (cat) {
+        if (counts[cat] > bestCount) { bestCount = counts[cat]; bestCat = cat; }
+      });
+      resolved[key] = bestCat;
+    });
+    return resolved;
+  }
+
+  function guessCategoryLearned(desc) {
+    var key = normalizeKey(desc);
+    if (!key) return null;
+    if (learnedCategoryCache === null || learnedCategoryCacheSize !== allEntries.length) {
+      learnedCategoryCache = buildLearnedCategoryMap();
+      learnedCategoryCacheSize = allEntries.length;
+    }
+    return learnedCategoryCache[key] || null;
+  }
+
   function guessCategoryFromText(desc) {
     if (!desc) return null;
     var d = desc.toLowerCase();
@@ -3111,6 +3145,7 @@
 
       var category = null;
       if (catCol >= 0) category = matchCategory(r[catCol]);
+      if (!category && type === 'expense') category = guessCategoryLearned(desc);
       if (!category) category = guessCategoryFromText(desc);
       if (!category) category = type === 'income' ? 'Övrig inkomst' : defaultCat;
 
