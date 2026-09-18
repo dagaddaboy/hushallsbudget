@@ -698,6 +698,14 @@
     color: var(--text);
     margin: 24px 2px 10px;
   }
+  .section-title.collapsible {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+  }
+  .section-title.collapsible .chev { color: var(--text-dim); font-size: 0.8rem; }
 
   /* ---- Entry list ---- */
   .entry-list {
@@ -873,6 +881,15 @@
     font-weight: 700;
     margin-bottom: 10px;
   }
+  .uncategorized-card > .label.collapsible {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+    margin-bottom: 4px;
+  }
+  .uncategorized-card > .label.collapsible .chev { color: var(--accent); font-size: 0.8rem; font-weight: 400; }
   .uncat-row {
     display: flex;
     align-items: center;
@@ -1145,7 +1162,7 @@
   <div class="section-title">Utgifter per kategori</div>
   <div class="breakdown" id="breakdown"></div>
 
-  <div class="section-title" id="transactionsTitle">Transaktioner denna månad</div>
+  <div class="section-title collapsible" id="transactionsTitle"><span id="transactionsTitleText"></span><span class="chev" id="transactionsChev">▾</span></div>
   <div class="entry-list" id="entryList"></div>
   <div class="empty" id="emptyMsg" style="display:none;">Inga transaktioner ännu den här månaden.</div>
 
@@ -1462,6 +1479,8 @@
   var trendOpen = false;
   var recurringOpen = false;
   var reportOpen = false;
+  var transactionsCollapsed = false;
+  var uncategorizedCollapsed = false;
 
   function matchesSearch(e, q) {
     var hay = [e.note, e.category, e.addedBy, e.date, e.amount].filter(Boolean).join(' ').toLowerCase();
@@ -2264,10 +2283,11 @@
     var recurringKeySet = new Set(detectRecurringGroups().map(function (g) { return g.key; }));
     var entries = searchQuery ? entriesForSearch(searchQuery) : getViewEntries();
     entries = applyFilters(entries);
-    document.getElementById('transactionsTitle').textContent =
+    document.getElementById('transactionsTitleText').textContent =
       searchQuery ? 'Sökresultat (' + entries.length + ')' :
       hasActiveFilters() ? 'Filtrerat (' + entries.length + ')' :
       (budgetMode === 'period' ? 'Transaktioner denna löneperiod' : 'Transaktioner denna månad');
+    document.getElementById('transactionsChev').textContent = transactionsCollapsed ? '▸' : '▾';
     entries = sortEntries(entries);
 
     var income = 0, expense = 0;
@@ -2297,12 +2317,17 @@
     var list = document.getElementById('entryList');
     var emptyMsg = document.getElementById('emptyMsg');
     list.innerHTML = '';
-    if (entries.length === 0) {
+    if (transactionsCollapsed) {
+      list.style.display = 'none';
+      emptyMsg.style.display = 'none';
+    } else if (entries.length === 0) {
+      list.style.display = '';
       emptyMsg.textContent = searchQuery ? 'Inga träffar för "' + searchQueryDisplay + '".' :
         hasActiveFilters() ? 'Inga transaktioner matchar filtret.' :
         'Inga transaktioner ännu den här månaden.';
       emptyMsg.style.display = 'block';
     } else {
+      list.style.display = '';
       emptyMsg.style.display = 'none';
       entries.forEach(function (e) {
         var row = renderEntryRow(e, recurringKeySet.has(normalizeKey(e.note)));
@@ -2488,7 +2513,7 @@
   function getUncategorizedGroups() {
     var groups = {};
     allEntries.forEach(function (e) {
-      if (e.type !== 'expense' || !isUncategorized(e)) return;
+      if (!isUncategorized(e)) return;
       if (filterPerson && (e.addedBy || '') !== filterPerson) return;
       var key = normalizeKey(e.note) || ('__id__' + e.id);
       if (!groups[key]) groups[key] = { key: key, sample: e.note || '(ingen beskrivning)', ids: [], entries: [], total: 0 };
@@ -2512,21 +2537,29 @@
     var catOptions = EXPENSE_CATEGORIES.concat(INCOME_CATEGORIES).map(function (c) {
       return '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>';
     }).join('');
-    var html = '<div class="card uncategorized-card"><div class="label">Okategoriserade utgifter (' + groups.length + ')</div>';
-    groups.forEach(function (g, i) {
-      var expandable = g.ids.length > 1;
-      var expanded = expandable && expandedUncatKeys[g.key];
-      html += '<div class="uncat-row' + (expandable ? ' expandable' : '') + '" data-i="' + i + '">' +
-        '<div class="uncat-meta"><div class="uncat-desc"></div><div class="uncat-sub"></div>' +
-        (expanded ? '<div class="uncat-detail-list">' + g.entries.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); }).map(function (e) {
-          return '<div class="uncat-detail-item"><span></span><span></span></div>';
-        }).join('') + '</div>' : '') +
-        '</div>' +
-        '<select class="uncat-select"><option value="" disabled selected>Välj kategori…</option>' + catOptions + '</select>' +
-        '</div>';
-    });
+    var html = '<div class="card uncategorized-card">' +
+      '<div class="label collapsible" id="uncatLabel"><span>Okategoriserade transaktioner (' + groups.length + ')</span><span class="chev">' + (uncategorizedCollapsed ? '▸' : '▾') + '</span></div>';
+    if (!uncategorizedCollapsed) {
+      groups.forEach(function (g, i) {
+        var expandable = g.ids.length > 1;
+        var expanded = expandable && expandedUncatKeys[g.key];
+        html += '<div class="uncat-row' + (expandable ? ' expandable' : '') + '" data-i="' + i + '">' +
+          '<div class="uncat-meta"><div class="uncat-desc"></div><div class="uncat-sub"></div>' +
+          (expanded ? '<div class="uncat-detail-list">' + g.entries.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); }).map(function (e) {
+            return '<div class="uncat-detail-item"><span></span><span></span></div>';
+          }).join('') + '</div>' : '') +
+          '</div>' +
+          '<select class="uncat-select"><option value="" disabled selected>Välj kategori…</option>' + catOptions + '</select>' +
+          '</div>';
+      });
+    }
     html += '</div>';
     wrap.innerHTML = html;
+    document.getElementById('uncatLabel').addEventListener('click', function () {
+      uncategorizedCollapsed = !uncategorizedCollapsed;
+      renderUncategorizedSection();
+    });
+    if (uncategorizedCollapsed) return;
     wrap.querySelectorAll('.uncat-row').forEach(function (row) {
       var g = groups[parseInt(row.getAttribute('data-i'), 10)];
       var expandable = g.ids.length > 1;
@@ -2817,6 +2850,11 @@
     document.getElementById('reportPanel').style.display = 'block';
     renderReportPanel();
   }
+
+  document.getElementById('transactionsTitle').addEventListener('click', function () {
+    transactionsCollapsed = !transactionsCollapsed;
+    render();
+  });
 
   document.getElementById('toggleReport').addEventListener('click', function () {
     reportOpen = !reportOpen;
