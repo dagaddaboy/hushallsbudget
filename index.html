@@ -1240,7 +1240,7 @@
     'Personlig vård', 'Barn', 'Husdjur', 'Nöje & Fritid', 'Prenumerationer', 'Räkningar & Avgifter',
     'Välgörenhet', 'Sparande', 'Övrigt'
   ];
-  var INCOME_CATEGORIES = ['Lön', 'Övrig inkomst'];
+  var INCOME_CATEGORIES = ['Lön', 'Från sparande', 'Övrig inkomst'];
   var ALL_CATEGORIES = INCOME_CATEGORIES.concat(EXPENSE_CATEGORIES);
   var CUSTOM_VALUE = '__custom__';
 
@@ -1699,6 +1699,13 @@
     var cur = totals(entries);
     var prev = totals(prevEntries);
 
+    var fromSavingsAmount = 0;
+    entries.forEach(function (e) {
+      if (e.type === 'income' && e.category === 'Från sparande') {
+        fromSavingsAmount += Number(e.amount) || 0;
+      }
+    });
+
     var catTotals = {};
     var prevCatTotals = {};
     var uncatCount = 0;
@@ -1746,7 +1753,7 @@
     return {
       range: range, cur: cur, prev: prev, topCats: topCats, biggest: biggest,
       uncatCount: uncatCount, uncatAmount: uncatAmount, categorizedPct: categorizedPct,
-      expenseCount: expenseCount, avgExpense: avgExpense,
+      expenseCount: expenseCount, avgExpense: avgExpense, fromSavingsAmount: fromSavingsAmount,
       savingsRate: savingsRate, recurringCount: recurring.length, recurringTotal: recurringTotal,
       peopleList: peopleList, funFacts: funFacts, insight: insight, forecast: forecast
     };
@@ -1754,16 +1761,24 @@
 
   function computeSpendingForecast() {
     var monthly = computeMonthlyHistory();
+    var fromSavingsByMonth = {};
+    allEntries.forEach(function (e) {
+      if (filterPerson && (e.addedBy || '') !== filterPerson) return;
+      if (e.type !== 'income' || e.category !== 'Från sparande' || !e.date) return;
+      var key = (e.date || '').slice(0, 7);
+      fromSavingsByMonth[key] = (fromSavingsByMonth[key] || 0) + (Number(e.amount) || 0);
+    });
     var currentKey = monthKey(new Date());
     var keys = Object.keys(monthly).filter(function (k) { return k !== currentKey; }).sort();
     if (keys.length > 12) keys = keys.slice(keys.length - 12);
     var monthsOfData = keys.length;
     if (monthsOfData === 0) return null;
 
-    var avgIncome = keys.reduce(function (s, k) { return s + monthly[k].income; }, 0) / monthsOfData;
+    function sustainableIncome(k) { return monthly[k].income - (fromSavingsByMonth[k] || 0); }
+    var avgIncome = keys.reduce(function (s, k) { return s + sustainableIncome(k); }, 0) / monthsOfData;
     var avgExpense = keys.reduce(function (s, k) { return s + monthly[k].expense; }, 0) / monthsOfData;
     var avgNet = avgIncome - avgExpense;
-    var nets = keys.map(function (k) { return monthly[k].income - monthly[k].expense; });
+    var nets = keys.map(function (k) { return sustainableIncome(k) - monthly[k].expense; });
     var variance = nets.reduce(function (s, n) { return s + Math.pow(n - avgNet, 2); }, 0) / monthsOfData;
     var stdDev = Math.sqrt(variance);
 
@@ -1896,6 +1911,10 @@
       (r.categorizedPct !== null ? '<div class="report-stat"><div class="report-stat-label">Kategoriserat</div><div class="report-stat-value" id="reportCatPct"></div></div>' : '') +
       '</div>';
 
+    if (r.fromSavingsAmount > 0) {
+      html += '<div class="report-insight" id="reportSavingsNote"></div>';
+    }
+
     if (r.topCats.length) {
       html += '<div class="report-section-title">Största utgiftskategorier</div>';
       r.topCats.forEach(function () {
@@ -1944,6 +1963,12 @@
       catPctEl.classList.toggle('income-text', r.categorizedPct >= 80);
     }
 
+    var savingsNoteEl = document.getElementById('reportSavingsNote');
+    if (savingsNoteEl) {
+      var withoutSavings = r.cur.balance - r.fromSavingsAmount;
+      savingsNoteEl.textContent = '💰 Du flyttade ' + fmtMoney(r.fromSavingsAmount) + ' från sparkontot den här perioden. Utan det hade "Kvar" varit ' + fmtMoney(withoutSavings) + ' istället för ' + fmtMoney(r.cur.balance) + '.';
+    }
+
     var forecastEl = document.getElementById('reportForecast');
     if (forecastEl && r.forecast) {
       var f = r.forecast;
@@ -1954,7 +1979,7 @@
         full: 'Baserad på en hel årscykel (' + f.monthsOfData + ' månader) — bör fånga upp de flesta återkommande och årsvisa kostnader.'
       };
       var html2 = '<div class="forecast-caveat">' + caveats[f.maturity] + '</div>';
-      html2 += '<div class="forecast-caveat">Snitt: ' + fmtMoney(f.avgIncome) + ' in / ' + fmtMoney(f.avgExpense) + ' ut per månad → ' + (f.avgNet >= 0 ? '+' : '') + fmtMoney(f.avgNet) + ' kr/månad om mönstret håller.</div>';
+      html2 += '<div class="forecast-caveat">Snitt: ' + fmtMoney(f.avgIncome) + ' in / ' + fmtMoney(f.avgExpense) + ' ut per månad (uttag från sparkontot är exkluderat, så det här visar det hållbara mönstret) → ' + (f.avgNet >= 0 ? '+' : '') + fmtMoney(f.avgNet) + ' kr/månad om mönstret håller.</div>';
       f.projections.forEach(function (p) {
         html2 += '<div class="forecast-row"><span>Om ' + p.months + ' månad' + (p.months > 1 ? 'er' : '') + '</span>' +
           '<span class="fr-value' + (p.mid < 0 ? ' expense-text' : ' income-text') + '">' + (p.mid >= 0 ? '+' : '') + fmtMoney(p.mid) +
