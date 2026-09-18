@@ -1216,6 +1216,9 @@
       <label class="invert-row">
         <input type="checkbox" id="invertSign"> Vänd tecken (om utgifter visas som positiva belopp)
       </label>
+      <label class="invert-row">
+        <input type="checkbox" id="skipOldRows" checked> Hoppa över rader äldre än 13 månader
+      </label>
       <div class="preview-note" id="previewNote"></div>
       <div class="preview-table">
         <table id="previewTable"></table>
@@ -2913,6 +2916,7 @@
   // ---- CSV import ----
   var importSource = 'bank';
   var parsedCsv = null; // {headers, rows, delim}
+  var skippedOldRowCount = 0;
   var previewRows = [];
 
   function splitCsvLine(line, delim) {
@@ -3149,7 +3153,7 @@
     updatePreview();
   }
 
-  ['mapDate', 'mapAmount', 'mapDesc', 'mapCategory', 'defaultCategory', 'invertSign'].forEach(function (id) {
+  ['mapDate', 'mapAmount', 'mapDesc', 'mapCategory', 'defaultCategory', 'invertSign', 'skipOldRows'].forEach(function (id) {
     document.getElementById(id).addEventListener('change', updatePreview);
     document.getElementById(id).addEventListener('input', updatePreview);
   });
@@ -3171,6 +3175,13 @@
     var catCol = parseInt(document.getElementById('mapCategory').value, 10);
     var invert = document.getElementById('invertSign').checked;
     var defaultCat = document.getElementById('defaultCategory').value;
+    var skipOld = document.getElementById('skipOldRows').checked;
+    var oldCutoff = (function () {
+      var now = new Date();
+      var c = new Date(now.getFullYear(), now.getMonth() - 13, now.getDate());
+      return c.getFullYear() + '-' + String(c.getMonth() + 1).padStart(2, '0') + '-' + String(c.getDate()).padStart(2, '0');
+    })();
+    skippedOldRowCount = 0;
 
     return parsedCsv.rows.map(function (r) {
       var rawAmt = parseAmount(r[amtCol]);
@@ -3179,6 +3190,7 @@
       var type = signedAmt < 0 ? 'expense' : 'income';
       var amount = Math.abs(signedAmt);
       var date = normalizeDate(r[dateCol]);
+      if (skipOld && date < oldCutoff) { skippedOldRowCount++; return null; }
       var desc = (r[descCol] || '').trim();
 
       var category = null;
@@ -3198,7 +3210,9 @@
   function updatePreview() {
     previewRows = buildPreviewRows();
     var note = document.getElementById('previewNote');
-    note.textContent = previewRows.length + ' rader tolkade av ' + (parsedCsv ? parsedCsv.rows.length : 0) + '. Kategori gissas automatiskt men går att ändra per rad nedan. Redan importerade transaktioner med samma datum/belopp/text skrivs över istället för att dubbleras.';
+    note.textContent = previewRows.length + ' rader tolkade av ' + (parsedCsv ? parsedCsv.rows.length : 0) +
+      (skippedOldRowCount > 0 ? ' (' + skippedOldRowCount + ' äldre än 13 månader hoppades över)' : '') +
+      '. Kategori gissas automatiskt men går att ändra per rad nedan. Redan importerade transaktioner (samma datum/belopp/text) hoppas över och rörs inte.';
     var table = document.getElementById('previewTable');
     var html = '<thead><tr><th>Datum</th><th>Beskrivning</th><th>Kategori</th><th>Belopp</th></tr></thead><tbody>';
     previewRows.slice(0, 25).forEach(function (row, i) {
