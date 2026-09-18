@@ -726,19 +726,21 @@
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    flex-shrink: 0;
   }
   .entry.income .amt { color: var(--income); }
   .entry.expense .amt { color: var(--expense); }
   .entry .edit-btn, .entry .del {
+    flex-shrink: 0;
     background: none;
     border: none;
     color: var(--text-dim);
-    font-size: 1.35rem;
+    font-size: 1.75rem;
     cursor: pointer;
-    padding: 10px;
+    padding: 8px;
     line-height: 1;
-    min-width: 40px;
-    min-height: 40px;
+    min-width: 48px;
+    min-height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
