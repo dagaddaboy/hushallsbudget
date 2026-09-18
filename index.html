@@ -705,7 +705,7 @@
     justify-content: space-between;
     user-select: none;
   }
-  .section-title.collapsible .chev { color: var(--text-dim); font-size: 0.8rem; }
+  .section-title.collapsible .chev { color: var(--text-dim); font-size: 1.15rem; }
 
   /* ---- Entry list ---- */
   .entry-list {
@@ -889,7 +889,7 @@
     user-select: none;
     margin-bottom: 4px;
   }
-  .uncategorized-card > .label.collapsible .chev { color: var(--accent); font-size: 0.8rem; font-weight: 400; }
+  .uncategorized-card > .label.collapsible .chev { color: var(--accent); font-size: 1.15rem; font-weight: 400; }
   .uncat-row {
     display: flex;
     align-items: center;
@@ -1162,7 +1162,7 @@
   <div class="section-title">Utgifter per kategori</div>
   <div class="breakdown" id="breakdown"></div>
 
-  <div class="section-title collapsible" id="transactionsTitle"><span id="transactionsTitleText"></span><span class="chev" id="transactionsChev">▾</span></div>
+  <div class="section-title collapsible" id="transactionsTitle"><span id="transactionsTitleText"></span><span class="chev" id="transactionsChev">▸</span></div>
   <div class="entry-list" id="entryList"></div>
   <div class="empty" id="emptyMsg" style="display:none;">Inga transaktioner ännu den här månaden.</div>
 
@@ -1479,8 +1479,8 @@
   var trendOpen = false;
   var recurringOpen = false;
   var reportOpen = false;
-  var transactionsCollapsed = false;
-  var uncategorizedCollapsed = false;
+  var transactionsCollapsed = true;
+  var uncategorizedCollapsed = true;
 
   function matchesSearch(e, q) {
     var hay = [e.note, e.category, e.addedBy, e.date, e.amount].filter(Boolean).join(' ').toLowerCase();
