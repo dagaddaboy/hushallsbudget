@@ -920,6 +920,18 @@
     font-variant-numeric: tabular-nums;
   }
   .uncat-detail-item span:last-child { color: var(--text); font-weight: 600; white-space: nowrap; }
+  .uncat-type-toggle { display: flex; gap: 6px; margin-top: 6px; }
+  .uncat-type-btn {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-dim);
+    border-radius: 7px;
+    padding: 5px 9px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
   .uncat-edit-btn {
     background: none;
     border: none;
@@ -2573,6 +2585,10 @@
         var expanded = expandable && expandedUncatKeys[g.key];
         html += '<div class="uncat-row' + (expandable ? ' expandable' : '') + '" data-i="' + i + '">' +
           '<div class="uncat-meta"><div class="uncat-desc"></div><div class="uncat-sub"></div>' +
+          (expandable ? '<div class="uncat-type-toggle" data-gi="' + i + '">' +
+            '<button type="button" class="uncat-type-btn" data-type="expense">Sätt alla: Utgift</button>' +
+            '<button type="button" class="uncat-type-btn" data-type="income">Sätt alla: Inkomst</button>' +
+          '</div>' : '') +
           (expanded ? '<div class="uncat-detail-list">' + g.entries.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); }).map(function (e) {
             return '<div class="uncat-detail-item"><span></span><span></span><button type="button" class="uncat-edit-btn" data-id="' + e.id + '" aria-label="Redigera">✎</button></div>';
           }).join('') + '</div>' : '') +
@@ -2624,6 +2640,13 @@
         jumpToEditEntry(btn.getAttribute('data-id'));
       });
     });
+    wrap.querySelectorAll('.uncat-type-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var gi = parseInt(btn.closest('.uncat-type-toggle').getAttribute('data-gi'), 10);
+        applyTypeToGroup(groups[gi].ids, btn.getAttribute('data-type'));
+      });
+    });
   }
 
   async function applyCategoryToGroup(ids, category) {
@@ -2640,6 +2663,23 @@
       } catch (e) { /* skip failed row */ }
     }
     setStatus(ids.length + (ids.length > 1 ? ' transaktioner' : ' transaktion') + ' satta till "' + category + '".');
+    if (!db) render();
+  }
+
+  async function applyTypeToGroup(ids, type) {
+    setStatus('Uppdaterar typ…');
+    for (var i = 0; i < ids.length; i++) {
+      var id = ids[i];
+      try {
+        if (db) {
+          await db.doc('entries/' + id).update({ type: type });
+        } else {
+          var idx = allEntries.findIndex(function (e) { return e.id === id; });
+          if (idx >= 0) allEntries[idx].type = type;
+        }
+      } catch (e) { /* skip failed row */ }
+    }
+    setStatus(ids.length + (ids.length > 1 ? ' transaktioner' : ' transaktion') + ' satta till ' + (type === 'income' ? 'Inkomst' : 'Utgift') + '.');
     if (!db) render();
   }
 
