@@ -898,6 +898,12 @@
     border-top: 1px solid var(--border);
   }
   .uncat-row:first-of-type { border-top: none; }
+  .uncat-row .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .uncat-row.income .dot { background: var(--income); }
+  .uncat-row.expense .dot { background: var(--expense); }
   .uncat-meta { flex: 1; min-width: 0; }
   .uncat-desc { font-weight: 600; font-size: 0.92rem; overflow-wrap: anywhere; }
   .uncat-sub { font-size: 0.82rem; color: var(--text-dim); }
@@ -2547,8 +2553,9 @@
     allEntries.forEach(function (e) {
       if (!isUncategorized(e)) return;
       if (filterPerson && (e.addedBy || '') !== filterPerson) return;
-      var key = normalizeKey(e.note) || ('__id__' + e.id);
-      if (!groups[key]) groups[key] = { key: key, sample: e.note || '(ingen beskrivning)', ids: [], entries: [], total: 0 };
+      var noteKey = normalizeKey(e.note) || ('__id__' + e.id);
+      var key = noteKey + '|' + e.type;
+      if (!groups[key]) groups[key] = { key: key, sample: e.note || '(ingen beskrivning)', type: e.type, ids: [], entries: [], total: 0 };
       groups[key].ids.push(e.id);
       groups[key].entries.push(e);
       groups[key].total += Number(e.amount) || 0;
@@ -2583,11 +2590,11 @@
       groups.forEach(function (g, i) {
         var expandable = g.ids.length > 1;
         var expanded = expandable && expandedUncatKeys[g.key];
-        html += '<div class="uncat-row' + (expandable ? ' expandable' : '') + '" data-i="' + i + '">' +
+        html += '<div class="uncat-row ' + g.type + (expandable ? ' expandable' : '') + '" data-i="' + i + '">' +
+          '<div class="dot"></div>' +
           '<div class="uncat-meta"><div class="uncat-desc"></div><div class="uncat-sub"></div>' +
           (expandable ? '<div class="uncat-type-toggle" data-gi="' + i + '">' +
-            '<button type="button" class="uncat-type-btn" data-type="expense">Sätt alla: Utgift</button>' +
-            '<button type="button" class="uncat-type-btn" data-type="income">Sätt alla: Inkomst</button>' +
+            '<button type="button" class="uncat-type-btn" data-type="' + (g.type === 'expense' ? 'income' : 'expense') + '">Detta är egentligen ' + (g.type === 'expense' ? 'en inkomst' : 'en utgift') + '</button>' +
           '</div>' : '') +
           (expanded ? '<div class="uncat-detail-list">' + g.entries.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); }).map(function (e) {
             return '<div class="uncat-detail-item"><span></span><span></span><button type="button" class="uncat-edit-btn" data-id="' + e.id + '" aria-label="Redigera">✎</button></div>';
