@@ -912,6 +912,7 @@
   }
   .uncat-detail-item {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 8px;
     font-size: 0.83rem;
@@ -919,6 +920,21 @@
     font-variant-numeric: tabular-nums;
   }
   .uncat-detail-item span:last-child { color: var(--text); font-weight: 600; white-space: nowrap; }
+  .uncat-edit-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 6px;
+    line-height: 1;
+    min-width: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
   .uncat-select {
     padding: 7px 8px;
     border-radius: 8px;
@@ -2378,6 +2394,7 @@
   function renderEntryRow(e, isRecurring) {
     var row = document.createElement('div');
     row.className = 'entry ' + (e.type === 'income' ? 'income' : 'expense');
+    row.setAttribute('data-id', e.id);
 
     if (editingId === e.id) {
       row.classList.add('editing');
@@ -2528,6 +2545,14 @@
       .sort(function (a, b) { return b.total - a.total; });
   }
 
+  function jumpToEditEntry(id) {
+    editingId = id;
+    transactionsCollapsed = false;
+    render();
+    var row = document.querySelector('#entryList [data-id="' + id + '"]');
+    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   function renderUncategorizedSection() {
     var wrap = document.getElementById('uncategorizedWrap');
     var groups = getUncategorizedGroups();
@@ -2549,9 +2574,10 @@
         html += '<div class="uncat-row' + (expandable ? ' expandable' : '') + '" data-i="' + i + '">' +
           '<div class="uncat-meta"><div class="uncat-desc"></div><div class="uncat-sub"></div>' +
           (expanded ? '<div class="uncat-detail-list">' + g.entries.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); }).map(function (e) {
-            return '<div class="uncat-detail-item"><span></span><span></span></div>';
+            return '<div class="uncat-detail-item"><span></span><span></span><button type="button" class="uncat-edit-btn" data-id="' + e.id + '" aria-label="Redigera">✎</button></div>';
           }).join('') + '</div>' : '') +
           '</div>' +
+          (!expandable ? '<button type="button" class="uncat-edit-btn" data-id="' + g.ids[0] + '" aria-label="Redigera">✎</button>' : '') +
           '<select class="uncat-select"><option value="" disabled selected>Välj kategori…</option>' + catOptions + '</select>' +
           '</div>';
       });
@@ -2590,6 +2616,12 @@
         var cat = this.value;
         if (!cat) return;
         applyCategoryToGroup(g.ids, cat);
+      });
+    });
+    wrap.querySelectorAll('.uncat-edit-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        jumpToEditEntry(btn.getAttribute('data-id'));
       });
     });
   }
