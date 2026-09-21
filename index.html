@@ -1123,29 +1123,6 @@
     <div id="heroBars"></div>
   </section>
 
-  <form class="add" id="addForm">
-    <div class="toggle-row">
-      <button type="button" data-type="income" id="btnIncome">Inkomst</button>
-      <button type="button" data-type="expense" id="btnExpense" class="active">Utgift</button>
-    </div>
-    <div class="whoami">
-      Ditt namn:
-      <input type="text" id="whoInput" placeholder="t.ex. Henrik" maxlength="24">
-    </div>
-    <div class="field-row">
-      <select id="catInput" required></select>
-      <input type="number" id="amtInput" placeholder="Belopp (kr)" required min="0" step="0.01" inputmode="decimal">
-    </div>
-    <div class="custom-cat-row" id="customCatRow">
-      <input type="text" id="customCatInput" placeholder="Skriv egen kategori" maxlength="40" style="width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-size:1rem;">
-    </div>
-    <div class="field-row">
-      <input type="text" id="noteInput" placeholder="Anteckning (valfritt)" maxlength="80">
-      <input type="date" id="dateInput">
-    </div>
-    <button type="submit" class="submit-btn">Lägg till</button>
-  </form>
-
   <div id="paydayNudge" class="payday-nudge" style="display:none;"></div>
 
   <div class="toolbar-row">
@@ -1190,6 +1167,29 @@
 
   <div id="uncategorizedWrap" style="display:none;"></div>
   <div id="settlementWrap" style="display:none;"></div>
+
+  <form class="add" id="addForm">
+    <div class="toggle-row">
+      <button type="button" data-type="income" id="btnIncome">Inkomst</button>
+      <button type="button" data-type="expense" id="btnExpense" class="active">Utgift</button>
+    </div>
+    <div class="whoami">
+      Ditt namn:
+      <input type="text" id="whoInput" placeholder="t.ex. Henrik" maxlength="24">
+    </div>
+    <div class="field-row">
+      <select id="catInput" required></select>
+      <input type="number" id="amtInput" placeholder="Belopp (kr)" required min="0" step="0.01" inputmode="decimal">
+    </div>
+    <div class="custom-cat-row" id="customCatRow">
+      <input type="text" id="customCatInput" placeholder="Skriv egen kategori" maxlength="40" style="width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-size:1rem;">
+    </div>
+    <div class="field-row">
+      <input type="text" id="noteInput" placeholder="Anteckning (valfritt)" maxlength="80">
+      <input type="date" id="dateInput">
+    </div>
+    <button type="submit" class="submit-btn">Lägg till</button>
+  </form>
 
   <div class="status" id="statusMsg"></div>
 </div>
