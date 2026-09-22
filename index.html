@@ -2603,7 +2603,12 @@
 
   function normalizeKey(note) {
     if (!note) return null;
-    var k = note.toLowerCase();
+    var raw = String(note).trim();
+    // Rena nummer (kontonummer, Swish-nummer) är unika mottagare — gruppera på själva numret
+    // i stället för att strippa bort det och tappa nyckeln.
+    var digitsOnly = raw.replace(/[\s\-]/g, '');
+    if (/^\d{6,}$/.test(digitsOnly)) return 'nr:' + digitsOnly;
+    var k = raw.toLowerCase();
     k = k.replace(/[0-9]+/g, ' ');
     k = k.replace(/[^a-zà-öø-ÿ\s]/gi, ' ');
     k = k.replace(/\s+/g, ' ').trim();
