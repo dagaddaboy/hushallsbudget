@@ -822,6 +822,17 @@
   .bd-amt { width: 84px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
 
   /* ---- Uncategorized card ---- */
+  .recon-card { margin-bottom: 18px; }
+  .recon-head { display: flex; justify-content: space-between; align-items: center; width: 100%;
+    background: none; border: none; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+  .recon-chev { color: var(--text-dim); }
+  .recon-status { font-size: 0.88rem; font-weight: 600; margin-top: 6px; }
+  .recon-card .settlement-hint { margin-top: 10px; }
+  .recon-row { display: grid; grid-template-columns: 1.1fr 1fr 1fr 0.9fr; gap: 6px; padding: 7px 0;
+    border-top: 1px solid var(--border); font-size: 0.84rem; font-variant-numeric: tabular-nums; }
+  .recon-row span:not(:first-child) { text-align: right; }
+  .recon-th { color: var(--text-dim); font-size: 0.75rem; border-top: none; }
+  .recon-diff { color: var(--expense); }
   .settlement-card {
     margin-bottom: 18px;
     border-color: var(--expense);
@@ -1283,7 +1294,7 @@
     'Mat & Livsmedel', 'Restaurang & Café', 'Boende/Hyra', 'El & Uppvärmning',
     'Hem & Underhåll', 'Transport', 'Drivmedel', 'Resor', 'Försäkring', 'Kläder & Skor', 'Hälsa & Sjukvård',
     'Personlig vård', 'Barn', 'Husdjur', 'Nöje & Fritid', 'Prenumerationer', 'Räkningar & Avgifter',
-    'Välgörenhet', 'Sparande', 'Övrigt'
+    'Välgörenhet', 'Sparande', 'Kortbetalning', 'Övrigt'
   ];
   var INCOME_CATEGORIES = ['Lön', 'Från sparande', 'Delade räkningar', 'Övrig inkomst'];
   var ALL_CATEGORIES = INCOME_CATEGORIES.concat(EXPENSE_CATEGORIES);
@@ -1317,7 +1328,7 @@
   function buildLearnedCategoryMap() {
     var map = {};
     allEntries.forEach(function (e) {
-      if (e.type !== 'expense' || isUncategorized(e)) return;
+      if (e.type !== 'expense' || isUncategorized(e) || isTransfer(e)) return;
       var key = normalizeKey(e.note);
       if (!key) return;
       if (!map[key]) map[key] = {};
@@ -1576,7 +1587,7 @@
   function detectRecurringGroups() {
     var groups = {};
     allEntries.forEach(function (e) {
-      if (e.type !== 'expense') return;
+      if (e.type !== 'expense' || isTransfer(e)) return;
       if (filterPerson && (e.addedBy || '') !== filterPerson) return;
       var key = normalizeKey(e.note);
       if (!key) return;
@@ -1657,6 +1668,7 @@
     });
     var actualIncome = 0, actualExpense = 0;
     periodEntries.forEach(function (e) {
+      if (isTransfer(e)) return;
       var amt = Number(e.amount) || 0;
       if (e.type === 'income') actualIncome += amt; else actualExpense += amt;
     });
@@ -1772,6 +1784,7 @@
     function totals(list) {
       var income = 0, expense = 0;
       list.forEach(function (e) {
+        if (isTransfer(e)) return;
         var amt = Number(e.amount) || 0;
         if (e.type === 'income') income += amt; else expense += amt;
       });
@@ -1794,7 +1807,7 @@
     var biggest = null;
     var peopleTotals = {};
     entries.forEach(function (e) {
-      if (e.type !== 'expense') return;
+      if (e.type !== 'expense' || isTransfer(e)) return;
       var amt = Number(e.amount) || 0;
       var cat = isUncategorized(e) ? null : e.category;
       if (!cat) { uncatCount++; uncatAmount += amt; }
@@ -1804,13 +1817,13 @@
       peopleTotals[person] = (peopleTotals[person] || 0) + amt;
     });
     prevEntries.forEach(function (e) {
-      if (e.type !== 'expense' || isUncategorized(e)) return;
+      if (e.type !== 'expense' || isUncategorized(e) || isTransfer(e)) return;
       prevCatTotals[e.category] = (prevCatTotals[e.category] || 0) + (Number(e.amount) || 0);
     });
     var topCats = Object.keys(catTotals).map(function (c) { return { cat: c, amt: catTotals[c] }; })
       .sort(function (a, b) { return b.amt - a.amt; }).slice(0, 5);
 
-    var expenseCount = entries.filter(function (e) { return e.type === 'expense'; }).length;
+    var expenseCount = entries.filter(function (e) { return e.type === 'expense' && !isTransfer(e); }).length;
     var avgExpense = expenseCount ? cur.expense / expenseCount : 0;
     var savingsRate = cur.income > 0 ? (cur.balance / cur.income) * 100 : null;
 
@@ -1906,7 +1919,7 @@
 
 
   function computeFunFacts(range, entries) {
-    var expenseEntries = entries.filter(function (e) { return e.type === 'expense'; });
+    var expenseEntries = entries.filter(function (e) { return e.type === 'expense' && !isTransfer(e); });
     if (!expenseEntries.length) return null;
 
     var placeCounts = {}, placeSample = {};
@@ -2144,7 +2157,7 @@
 
     var byDate = {};
     monthEntries.forEach(function (e) {
-      if (!e.date) return;
+      if (!e.date || isTransfer(e)) return;
       if (!byDate[e.date]) byDate[e.date] = { income: 0, expense: 0 };
       var amt = Number(e.amount) || 0;
       if (e.type === 'income') byDate[e.date].income += amt;
@@ -2183,6 +2196,7 @@
     var monthly = {};
     allEntries.forEach(function (e) {
       if (filterPerson && (e.addedBy || '') !== filterPerson) return;
+      if (isTransfer(e)) return;
       var key = (e.date || '').slice(0, 7);
       if (!key) return;
       if (!monthly[key]) monthly[key] = { income: 0, expense: 0 };
@@ -2242,56 +2256,90 @@
       '</div>' + svg;
   }
 
-  var SETTLEMENT_LABELS = ['seb kort bank ab', 'swedbank kreditkort', 'nordea kort', 'handelsbanken kort', 'länsförsäkringar kort'];
+  var reconOpen = false;
 
-  function getSettlementEntries() {
-    return allEntries.filter(function (e) {
-      if (e.type !== 'expense' || !e.note) return false;
-      if (filterPerson && (e.addedBy || '') !== filterPerson) return false;
-      return SETTLEMENT_LABELS.indexOf(e.note.trim().toLowerCase()) !== -1;
-    }).sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+  function monthKeyShift(key, delta) {
+    var y = parseInt(key.slice(0, 4), 10), m = parseInt(key.slice(5, 7), 10) - 1 + delta;
+    y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+    return y + '-' + (m < 9 ? '0' : '') + (m + 1);
   }
 
-  function allCardPurchasesSorted() {
-    var cardEntries = allEntries.filter(function (e) { return e.type === 'expense' && e.source === 'Kortimport'; });
-    if (!cardEntries.length) return false;
-    return cardEntries.every(function (e) { return !isUncategorized(e); });
+  // Kortavstämning: betalningen i månad M ska motsvara kortköpen bokförda i månad M-1.
+  function computeCardReconciliation() {
+    var billed = {}, paid = {};
+    var hasCard = false, hasPay = false;
+    allEntries.forEach(function (e) {
+      if (!e.date) return;
+      var key = e.date.slice(0, 7);
+      var amt = Number(e.amount) || 0;
+      if (e.source === 'Kortimport' && !isTransfer(e)) {
+        hasCard = true;
+        var inv = monthKeyShift(key, 1);
+        billed[inv] = (billed[inv] || 0) + (e.type === 'income' ? -amt : amt);
+      } else if (isTransfer(e) && e.type === 'expense' && e.source !== 'Kortimport') {
+        hasPay = true;
+        paid[key] = (paid[key] || 0) + amt;
+      }
+    });
+    if (!hasCard && !hasPay) return null;
+    var keys = Object.keys(billed).concat(Object.keys(paid)).sort();
+    var first = keys[0], last = keys[keys.length - 1];
+    var firstCardInv = Object.keys(billed).sort()[0] || null;
+    var rows = [], k = first, running = 0, guard = 0;
+    while (k <= last && guard++ < 240) {
+      var b = billed[k] || 0, pd = paid[k] || 0;
+      var covered = !!firstCardInv && k >= firstCardInv;
+      if (covered) running += b - pd;
+      if (b || pd) rows.push({ month: k, billed: b, paid: pd, covered: covered, running: running });
+      k = monthKeyShift(k, 1);
+    }
+    return { rows: rows, hasCard: hasCard, hasPay: hasPay, outstanding: running };
+  }
+
+  function fmtMonthKey(key) {
+    return monthNames[parseInt(key.slice(5, 7), 10) - 1].slice(0, 3).toLowerCase() + ' ' + key.slice(0, 4);
   }
 
   function renderSettlementWarning() {
     var wrap = document.getElementById('settlementWrap');
-    var list = getSettlementEntries();
-    if (!list.length) {
-      wrap.style.display = 'none';
-      wrap.innerHTML = '';
-      return;
-    }
-    if (allCardPurchasesSorted()) {
-      list.forEach(function (e) { deleteEntry(e.id); });
-      wrap.style.display = 'none';
-      wrap.innerHTML = '';
-      setStatus('Alla kortköp är sorterade — kortavräkningen togs bort automatiskt.');
-      return;
-    }
+    var r = computeCardReconciliation();
+    if (!r) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
     wrap.style.display = 'block';
-    var total = list.reduce(function (s, e) { return s + (Number(e.amount) || 0); }, 0);
-    var html = '<div class="card settlement-card">' +
-      '<div class="label">⚠️ Möjlig dubbelräkning (' + list.length + ')</div>' +
-      '<div class="settlement-hint">Det här är kortavräkningar från banken, inte enskilda köp. Om du importerar kortets egna kontoutdrag och kategoriserar alla köpen där, försvinner raderna nedan automatiskt. Fram tills dess kan du ta bort dem manuellt.</div>';
-    list.forEach(function (e, i) {
-      html += '<div class="settlement-row" data-i="' + i + '"><div class="settlement-meta"></div><button type="button" class="settlement-del">Ta bort</button></div>';
-    });
-    html += '<button type="button" class="settlement-del-all">Ta bort alla (' + fmtMoney(total) + ')</button></div>';
-    wrap.innerHTML = html;
-    wrap.querySelectorAll('.settlement-row').forEach(function (row) {
-      var e = list[parseInt(row.getAttribute('data-i'), 10)];
-      row.querySelector('.settlement-meta').textContent = e.note + ' · ' + fmtDateStrShort(e.date) + ' · ' + fmtMoney(Number(e.amount) || 0);
-      row.querySelector('.settlement-del').addEventListener('click', function () {
-        deleteEntry(e.id);
+    var status, statusColor;
+    if (!r.hasCard) {
+      status = 'Kortköpen saknas — importera kortets kontoutdrag (välj "Kort" vid import)';
+      statusColor = 'var(--expense)';
+    } else if (Math.abs(r.outstanding) < 1) {
+      status = '✓ Stämmer — alla kortköp är betalda';
+      statusColor = 'var(--income)';
+    } else if (r.outstanding > 0) {
+      status = 'Kvar att betala: ' + fmtMoney(r.outstanding);
+      statusColor = 'var(--text-dim)';
+    } else {
+      status = 'Betalt mer än importerade köp: ' + fmtMoney(-r.outstanding) + ' — saknas kortköp?';
+      statusColor = 'var(--expense)';
+    }
+    var html = '<div class="card recon-card">' +
+      '<button type="button" class="recon-head"><span class="label" style="margin:0;">💳 Kortavstämning</span>' +
+      '<span class="recon-chev">' + (reconOpen ? '▾' : '▸') + '</span></button>' +
+      '<div class="recon-status" style="color:' + statusColor + ';">' + escapeHtml(status) + '</div>';
+    if (reconOpen) {
+      html += '<div class="settlement-hint">Betalningar till kortet räknas inte som utgifter — köpen från kortimporten gör det. ' +
+        'Varje månads betalning jämförs med kortköpen bokförda månaden innan.</div>' +
+        '<div class="recon-row recon-th"><span>Faktura</span><span>Kortköp</span><span>Betalt</span><span>Kvar</span></div>';
+      r.rows.slice().reverse().slice(0, 13).forEach(function (row) {
+        var kvar = row.covered ? (Math.abs(row.running) < 1 ? '✓' : fmtMoney(row.running)) : '–';
+        html += '<div class="recon-row"><span>' + fmtMonthKey(row.month) + '</span>' +
+          '<span>' + (row.covered ? fmtMoney(row.billed) : 'ej importerat') + '</span>' +
+          '<span>' + (row.paid ? fmtMoney(row.paid) : '–') + '</span>' +
+          '<span class="' + (row.covered && Math.abs(row.running) >= 1 ? 'recon-diff' : '') + '">' + kvar + '</span></div>';
       });
-    });
-    wrap.querySelector('.settlement-del-all').addEventListener('click', function () {
-      list.forEach(function (e) { deleteEntry(e.id); });
+    }
+    html += '</div>';
+    wrap.innerHTML = html;
+    wrap.querySelector('.recon-head').addEventListener('click', function () {
+      reconOpen = !reconOpen;
+      renderSettlementWarning();
     });
   }
 
@@ -2318,6 +2366,7 @@
     var income = 0, expense = 0;
     var catTotals = {};
     entries.forEach(function (e) {
+      if (isTransfer(e)) return;
       var amt = Number(e.amount) || 0;
       if (e.type === 'income') { income += amt; }
       else {
@@ -2506,7 +2555,44 @@
     return html;
   }
 
+  var TRANSFER_CATEGORY = 'Kortbetalning';
+  var CARD_PAYMENT_NOTES = ['seb kort bank ab', 'swedbank kreditkort', 'nordea kort', 'handelsbanken kort', 'länsförsäkringar kort'];
+  function isCardPaymentNote(note) {
+    return !!note && CARD_PAYMENT_NOTES.indexOf(String(note).trim().toLowerCase()) !== -1;
+  }
+  // Kortbetalningar från bankkontot är överföringar till kortet, inte utgifter.
+  // Själva köpen kommer från kortimporten. De visas i listan men räknas aldrig i summor.
+  function isTransfer(e) {
+    if (!e) return false;
+    if (e.category === TRANSFER_CATEGORY) return true;
+    if (e.source === 'Kortimport' && /^betalt bg/i.test(String(e.note || '').trim())) return true;
+    if (e.type !== 'expense' || e.source === 'Kortimport' || !isCardPaymentNote(e.note) || !e.date) return false;
+    // Bara om kortköpen för fakturan (månaden innan) finns importerade — annars får betalningen
+    // fortsätta räknas som utgift så att äldre perioder inte ser billigare ut än de var.
+    var start = cardCoverageStart();
+    return !!start && e.date.slice(0, 7) >= start;
+  }
+  var _covCache = { n: -1, v: null };
+  function cardCoverageStart() {
+    if (_covCache.n === allEntries.length) return _covCache.v;
+    var min = null;
+    allEntries.forEach(function (e) {
+      if (e.source === 'Kortimport' && e.date && (!min || e.date < min)) min = e.date;
+    });
+    var v = null;
+    if (min) {
+      var y = parseInt(min.slice(0, 4), 10), m = parseInt(min.slice(5, 7), 10) + 1;
+      if (m > 12) { m = 1; y++; }
+      v = y + '-' + (m < 10 ? '0' : '') + m;
+    }
+    _covCache = { n: allEntries.length, v: v };
+    return v;
+  }
+  function countable(e) { return !isTransfer(e); }
+
   function isUncategorized(e) {
+    if (isTransfer(e)) return false;
+    if (e.type === 'expense' && isCardPaymentNote(e.note)) return false;
     return !e.category || e.category === 'Okategoriserat' || e.category === 'Okategoriserad';
   }
 
