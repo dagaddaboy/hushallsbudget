@@ -2745,8 +2745,10 @@
       var expandable = g.ids.length > 1;
       var expanded = expandable && expandedUncatKeys[g.key];
       row.querySelector('.uncat-desc').textContent = g.sample + (expandable ? (expanded ? ' ▾' : ' ▸') : '');
+      var people = Array.from(new Set(g.entries.map(function (e) { return e.addedBy || 'Okänd'; })));
+      var whoLabel = people.length === 1 ? people[0] : 'flera';
       row.querySelector('.uncat-sub').textContent =
-        g.ids.length + (g.ids.length > 1 ? ' liknande transaktioner' : ' transaktion') + ' · ' + dateLabelForGroup(g) + ' · ' + fmtMoney(g.total);
+        g.ids.length + (g.ids.length > 1 ? ' liknande transaktioner' : ' transaktion') + ' · ' + dateLabelForGroup(g) + ' · ' + fmtMoney(g.total) + ' · ' + whoLabel;
       if (expanded) {
         var sorted = g.entries.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
         var items = row.querySelectorAll('.uncat-detail-item');
