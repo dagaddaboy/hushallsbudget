@@ -566,6 +566,39 @@
     font-family: inherit;
   }
 
+  .trend-horizon-toggle {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .trend-h-btn {
+    flex: 1;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-dim);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .trend-h-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--surface);
+  }
+  .trend-cat-select {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 0.85rem;
+    font-family: inherit;
+    margin-bottom: 10px;
+  }
   .insight-panel {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -822,17 +855,6 @@
   .bd-amt { width: 84px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
 
   /* ---- Uncategorized card ---- */
-  .recon-card { margin-bottom: 18px; }
-  .recon-head { display: flex; justify-content: space-between; align-items: center; width: 100%;
-    background: none; border: none; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
-  .recon-chev { color: var(--text-dim); }
-  .recon-status { font-size: 0.88rem; font-weight: 600; margin-top: 6px; }
-  .recon-card .settlement-hint { margin-top: 10px; }
-  .recon-row { display: grid; grid-template-columns: 1.1fr 1fr 1fr 0.9fr; gap: 6px; padding: 7px 0;
-    border-top: 1px solid var(--border); font-size: 0.84rem; font-variant-numeric: tabular-nums; }
-  .recon-row span:not(:first-child) { text-align: right; }
-  .recon-th { color: var(--text-dim); font-size: 0.75rem; border-top: none; }
-  .recon-diff { color: var(--expense); }
   .settlement-card {
     margin-bottom: 18px;
     border-color: var(--expense);
@@ -1294,7 +1316,7 @@
     'Mat & Livsmedel', 'Restaurang & Café', 'Boende/Hyra', 'El & Uppvärmning',
     'Hem & Underhåll', 'Transport', 'Drivmedel', 'Resor', 'Försäkring', 'Kläder & Skor', 'Hälsa & Sjukvård',
     'Personlig vård', 'Barn', 'Husdjur', 'Nöje & Fritid', 'Prenumerationer', 'Räkningar & Avgifter',
-    'Välgörenhet', 'Sparande', 'Kortbetalning', 'Övrigt'
+    'Välgörenhet', 'Sparande', 'Övrigt'
   ];
   var INCOME_CATEGORIES = ['Lön', 'Från sparande', 'Delade räkningar', 'Övrig inkomst'];
   var ALL_CATEGORIES = INCOME_CATEGORIES.concat(EXPENSE_CATEGORIES);
@@ -1328,7 +1350,7 @@
   function buildLearnedCategoryMap() {
     var map = {};
     allEntries.forEach(function (e) {
-      if (e.type !== 'expense' || isUncategorized(e) || isTransfer(e)) return;
+      if (e.type !== 'expense' || isUncategorized(e)) return;
       var key = normalizeKey(e.note);
       if (!key) return;
       if (!map[key]) map[key] = {};
@@ -1587,7 +1609,7 @@
   function detectRecurringGroups() {
     var groups = {};
     allEntries.forEach(function (e) {
-      if (e.type !== 'expense' || isTransfer(e)) return;
+      if (e.type !== 'expense') return;
       if (filterPerson && (e.addedBy || '') !== filterPerson) return;
       var key = normalizeKey(e.note);
       if (!key) return;
@@ -1668,7 +1690,6 @@
     });
     var actualIncome = 0, actualExpense = 0;
     periodEntries.forEach(function (e) {
-      if (isTransfer(e)) return;
       var amt = Number(e.amount) || 0;
       if (e.type === 'income') actualIncome += amt; else actualExpense += amt;
     });
@@ -1784,7 +1805,6 @@
     function totals(list) {
       var income = 0, expense = 0;
       list.forEach(function (e) {
-        if (isTransfer(e)) return;
         var amt = Number(e.amount) || 0;
         if (e.type === 'income') income += amt; else expense += amt;
       });
@@ -1807,7 +1827,7 @@
     var biggest = null;
     var peopleTotals = {};
     entries.forEach(function (e) {
-      if (e.type !== 'expense' || isTransfer(e)) return;
+      if (e.type !== 'expense') return;
       var amt = Number(e.amount) || 0;
       var cat = isUncategorized(e) ? null : e.category;
       if (!cat) { uncatCount++; uncatAmount += amt; }
@@ -1817,13 +1837,13 @@
       peopleTotals[person] = (peopleTotals[person] || 0) + amt;
     });
     prevEntries.forEach(function (e) {
-      if (e.type !== 'expense' || isUncategorized(e) || isTransfer(e)) return;
+      if (e.type !== 'expense' || isUncategorized(e)) return;
       prevCatTotals[e.category] = (prevCatTotals[e.category] || 0) + (Number(e.amount) || 0);
     });
     var topCats = Object.keys(catTotals).map(function (c) { return { cat: c, amt: catTotals[c] }; })
       .sort(function (a, b) { return b.amt - a.amt; }).slice(0, 5);
 
-    var expenseCount = entries.filter(function (e) { return e.type === 'expense' && !isTransfer(e); }).length;
+    var expenseCount = entries.filter(function (e) { return e.type === 'expense'; }).length;
     var avgExpense = expenseCount ? cur.expense / expenseCount : 0;
     var savingsRate = cur.income > 0 ? (cur.balance / cur.income) * 100 : null;
 
@@ -1919,7 +1939,7 @@
 
 
   function computeFunFacts(range, entries) {
-    var expenseEntries = entries.filter(function (e) { return e.type === 'expense' && !isTransfer(e); });
+    var expenseEntries = entries.filter(function (e) { return e.type === 'expense'; });
     if (!expenseEntries.length) return null;
 
     var placeCounts = {}, placeSample = {};
@@ -2157,7 +2177,7 @@
 
     var byDate = {};
     monthEntries.forEach(function (e) {
-      if (!e.date || isTransfer(e)) return;
+      if (!e.date) return;
       if (!byDate[e.date]) byDate[e.date] = { income: 0, expense: 0 };
       var amt = Number(e.amount) || 0;
       if (e.type === 'income') byDate[e.date].income += amt;
@@ -2196,7 +2216,6 @@
     var monthly = {};
     allEntries.forEach(function (e) {
       if (filterPerson && (e.addedBy || '') !== filterPerson) return;
-      if (isTransfer(e)) return;
       var key = (e.date || '').slice(0, 7);
       if (!key) return;
       if (!monthly[key]) monthly[key] = { income: 0, expense: 0 };
@@ -2206,26 +2225,65 @@
     return monthly;
   }
 
+  var trendHorizon = 'year';
+  var trendCategory = '';
+
   function renderTrendPanel() {
-    var monthly = computeMonthlyHistory();
-    var keys = Object.keys(monthly).sort();
-    if (keys.length > 12) keys = keys.slice(keys.length - 12);
     var panel = document.getElementById('trendPanel');
-    if (keys.length === 0) {
-      panel.innerHTML = '<div class="empty" style="padding:8px 0;">Ingen data att visa än.</div>';
-      return;
-    }
+    var toggleHtml = '<div class="trend-horizon-toggle">' +
+      '<button type="button" class="trend-h-btn' + (trendHorizon === 'month' ? ' active' : '') + '" data-h="month">1 månad</button>' +
+      '<button type="button" class="trend-h-btn' + (trendHorizon === 'year' ? ' active' : '') + '" data-h="year">1 år</button>' +
+      '</div>';
+    var catOptionsHtml = '<option value="">Alla kategorier</option>' + ALL_CATEGORIES.map(function (c) {
+      return '<option value="' + escapeHtml(c) + '"' + (trendCategory === c ? ' selected' : '') + '>' + escapeHtml(c) + '</option>';
+    }).join('');
+    var catSelectHtml = '<select class="trend-cat-select" id="trendCatSelect">' + catOptionsHtml + '</select>';
+
+    var bodyHtml = trendHorizon === 'month' ? buildTrendMonthSvg() : buildTrendYearSvg();
+    panel.innerHTML = toggleHtml + catSelectHtml + bodyHtml;
+    panel.querySelectorAll('.trend-h-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        trendHorizon = btn.getAttribute('data-h');
+        renderTrendPanel();
+      });
+    });
+    document.getElementById('trendCatSelect').addEventListener('change', function () {
+      trendCategory = this.value;
+      renderTrendPanel();
+    });
+  }
+
+  function computeMonthlyHistoryForCategory(category) {
+    var monthly = {};
+    allEntries.forEach(function (e) {
+      if (filterPerson && (e.addedBy || '') !== filterPerson) return;
+      if (e.category !== category) return;
+      var key = (e.date || '').slice(0, 7);
+      if (!key) return;
+      monthly[key] = (monthly[key] || 0) + (Number(e.amount) || 0);
+    });
+    return monthly;
+  }
+
+  function buildTrendYearSvg() {
+    var isFiltered = !!trendCategory;
+    var monthly = isFiltered ? null : computeMonthlyHistory();
+    var monthlyCat = isFiltered ? computeMonthlyHistoryForCategory(trendCategory) : null;
+    var keys = Object.keys(isFiltered ? monthlyCat : monthly).sort();
+    if (keys.length > 12) keys = keys.slice(keys.length - 12);
+    if (keys.length === 0) return '<div class="empty" style="padding:8px 0;">Ingen data att visa än.</div>';
 
     var w = 320, h = 180, padL = 34, padR = 8, padT = 14, padB = 26;
     var innerW = w - padL - padR, innerH = h - padT - padB;
     var maxVal = 1;
-    keys.forEach(function (k) { maxVal = Math.max(maxVal, monthly[k].income, monthly[k].expense); });
+    if (isFiltered) {
+      keys.forEach(function (k) { maxVal = Math.max(maxVal, monthlyCat[k]); });
+    } else {
+      keys.forEach(function (k) { maxVal = Math.max(maxVal, monthly[k].income, monthly[k].expense); });
+    }
 
     function xPos(i) { return padL + (keys.length === 1 ? innerW / 2 : (i / (keys.length - 1)) * innerW); }
     function yPos(v) { return padT + innerH - (v / maxVal) * innerH; }
-
-    var incomePts = keys.map(function (k, i) { return xPos(i) + ',' + yPos(monthly[k].income); }).join(' ');
-    var expensePts = keys.map(function (k, i) { return xPos(i) + ',' + yPos(monthly[k].expense); }).join(' ');
 
     var gridLines = '';
     for (var g = 0; g <= 2; g++) {
@@ -2239,107 +2297,144 @@
       return '<text x="' + xPos(i) + '" y="' + (h - 8) + '" font-size="10" fill="var(--text-dim)" text-anchor="middle">' + monthShortLabel(k) + '</text>';
     }).join('');
 
-    var incomeDots = keys.map(function (k, i) { return '<circle cx="' + xPos(i) + '" cy="' + yPos(monthly[k].income) + '" r="2.5" fill="var(--income)"/>'; }).join('');
-    var expenseDots = keys.map(function (k, i) { return '<circle cx="' + xPos(i) + '" cy="' + yPos(monthly[k].expense) + '" r="2.5" fill="var(--expense)"/>'; }).join('');
+    var svg, legend;
+    if (isFiltered) {
+      var catPts = keys.map(function (k, i) { return xPos(i) + ',' + yPos(monthlyCat[k]); }).join(' ');
+      var catDots = keys.map(function (k, i) { return '<circle cx="' + xPos(i) + '" cy="' + yPos(monthlyCat[k]) + '" r="2.5" fill="var(--accent)"/>'; }).join('');
+      svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%; height:auto; display:block;">' +
+        gridLines +
+        '<polyline points="' + catPts + '" fill="none" stroke="var(--accent)" stroke-width="2"/>' +
+        catDots + labels +
+        '</svg>';
+      legend = '<div style="font-size:0.78rem; color:var(--accent); margin:2px 0 8px;">● ' + escapeHtml(trendCategory) + '</div>';
+    } else {
+      var incomePts = keys.map(function (k, i) { return xPos(i) + ',' + yPos(monthly[k].income); }).join(' ');
+      var expensePts = keys.map(function (k, i) { return xPos(i) + ',' + yPos(monthly[k].expense); }).join(' ');
+      var incomeDots = keys.map(function (k, i) { return '<circle cx="' + xPos(i) + '" cy="' + yPos(monthly[k].income) + '" r="2.5" fill="var(--income)"/>'; }).join('');
+      var expenseDots = keys.map(function (k, i) { return '<circle cx="' + xPos(i) + '" cy="' + yPos(monthly[k].expense) + '" r="2.5" fill="var(--expense)"/>'; }).join('');
+      svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%; height:auto; display:block;">' +
+        gridLines +
+        '<polyline points="' + incomePts + '" fill="none" stroke="var(--income)" stroke-width="2"/>' +
+        '<polyline points="' + expensePts + '" fill="none" stroke="var(--expense)" stroke-width="2"/>' +
+        incomeDots + expenseDots + labels +
+        '</svg>';
+      legend = '<div style="display:flex; gap:14px; font-size:0.78rem; margin:2px 0 8px;">' +
+        '<span style="color:var(--income);">● Inkomster</span>' +
+        '<span style="color:var(--expense);">● Utgifter</span>' +
+        '</div>';
+    }
+    return legend + svg;
+  }
+
+  function buildTrendMonthSvg() {
+    var range = getViewRange();
+    var entries = entriesInRange(range, true).filter(function (e) {
+      if (e.type !== 'expense') return false;
+      if (trendCategory && e.category !== trendCategory) return false;
+      return true;
+    });
+    var dayTotals = {};
+    entries.forEach(function (e) {
+      if (!e.date) return;
+      dayTotals[e.date] = (dayTotals[e.date] || 0) + (Number(e.amount) || 0);
+    });
+
+    var days = [];
+    var cursor = new Date(range.start);
+    var end = range.end < new Date() ? range.end : new Date();
+    while (cursor <= end) {
+      var key = cursor.getFullYear() + '-' + String(cursor.getMonth() + 1).padStart(2, '0') + '-' + String(cursor.getDate()).padStart(2, '0');
+      days.push({ key: key, day: cursor.getDate(), amt: dayTotals[key] || 0 });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    if (days.length === 0) return '<div class="empty" style="padding:8px 0;">Ingen data att visa än.</div>';
+
+    var w = 320, h = 180, padL = 34, padR = 8, padT = 14, padB = 26;
+    var innerW = w - padL - padR, innerH = h - padT - padB;
+    var maxVal = Math.max.apply(null, days.map(function (d) { return d.amt; }).concat([1]));
+    var barW = Math.max(2, innerW / days.length - 2);
+
+    function xPos(i) { return padL + (i / days.length) * innerW + (innerW / days.length) / 2; }
+    function barH(v) { return (v / maxVal) * innerH; }
+
+    var gridLines = '';
+    for (var g = 0; g <= 2; g++) {
+      var gy = padT + innerH - (g / 2) * innerH;
+      gridLines += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (w - padR) + '" y2="' + gy + '" stroke="var(--border)" stroke-width="1"/>';
+      gridLines += '<text x="' + (padL - 5) + '" y="' + (gy + 3) + '" font-size="10" fill="var(--text-dim)" text-anchor="end">' + fmtMoneyShort((g / 2) * maxVal) + '</text>';
+    }
+
+    var bars = days.map(function (d, i) {
+      var x = padL + (i / days.length) * innerW;
+      var bh = barH(d.amt);
+      return '<rect x="' + x + '" y="' + (padT + innerH - bh) + '" width="' + barW + '" height="' + bh + '" fill="var(--expense)" rx="1.5"/>';
+    }).join('');
+
+    var showEvery = Math.ceil(days.length / 8);
+    var labels = days.map(function (d, i) {
+      if (i % showEvery !== 0 && i !== days.length - 1) return '';
+      return '<text x="' + xPos(i) + '" y="' + (h - 8) + '" font-size="10" fill="var(--text-dim)" text-anchor="middle">' + d.day + '</text>';
+    }).join('');
 
     var svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%; height:auto; display:block;">' +
-      gridLines +
-      '<polyline points="' + incomePts + '" fill="none" stroke="var(--income)" stroke-width="2"/>' +
-      '<polyline points="' + expensePts + '" fill="none" stroke="var(--expense)" stroke-width="2"/>' +
-      incomeDots + expenseDots + labels +
+      gridLines + bars + labels +
       '</svg>';
 
-    panel.innerHTML =
-      '<div style="display:flex; gap:14px; font-size:0.78rem; margin-bottom:8px;">' +
-      '<span style="color:var(--income);">● Inkomster</span>' +
-      '<span style="color:var(--expense);">● Utgifter</span>' +
-      '</div>' + svg;
+    var total = days.reduce(function (s, d) { return s + d.amt; }, 0);
+    var subtitleLabel = trendCategory ? 'Dagliga utgifter — ' + escapeHtml(trendCategory) : 'Dagliga utgifter';
+    return '<div style="font-size:0.78rem; color:var(--text-dim); margin:2px 0 8px;">' + subtitleLabel + ', ' + fmtMoney(total) + ' totalt denna period</div>' + svg;
   }
 
-  var reconOpen = false;
+  var SETTLEMENT_LABELS = ['seb kort bank ab', 'swedbank kreditkort', 'nordea kort', 'handelsbanken kort', 'länsförsäkringar kort'];
 
-  function monthKeyShift(key, delta) {
-    var y = parseInt(key.slice(0, 4), 10), m = parseInt(key.slice(5, 7), 10) - 1 + delta;
-    y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
-    return y + '-' + (m < 9 ? '0' : '') + (m + 1);
+  function getSettlementEntries() {
+    return allEntries.filter(function (e) {
+      if (e.type !== 'expense' || !e.note) return false;
+      if (filterPerson && (e.addedBy || '') !== filterPerson) return false;
+      return SETTLEMENT_LABELS.indexOf(e.note.trim().toLowerCase()) !== -1;
+    }).sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
   }
 
-  // Kortavstämning: betalningen i månad M ska motsvara kortköpen bokförda i månad M-1.
-  function computeCardReconciliation() {
-    var billed = {}, paid = {};
-    var hasCard = false, hasPay = false;
-    allEntries.forEach(function (e) {
-      if (!e.date) return;
-      var key = e.date.slice(0, 7);
-      var amt = Number(e.amount) || 0;
-      if (e.source === 'Kortimport' && !isTransfer(e)) {
-        hasCard = true;
-        var inv = monthKeyShift(key, 1);
-        billed[inv] = (billed[inv] || 0) + (e.type === 'income' ? -amt : amt);
-      } else if (isTransfer(e) && e.type === 'expense' && e.source !== 'Kortimport') {
-        hasPay = true;
-        paid[key] = (paid[key] || 0) + amt;
-      }
-    });
-    if (!hasCard && !hasPay) return null;
-    var keys = Object.keys(billed).concat(Object.keys(paid)).sort();
-    var first = keys[0], last = keys[keys.length - 1];
-    var firstCardInv = Object.keys(billed).sort()[0] || null;
-    var rows = [], k = first, running = 0, guard = 0;
-    while (k <= last && guard++ < 240) {
-      var b = billed[k] || 0, pd = paid[k] || 0;
-      var covered = !!firstCardInv && k >= firstCardInv;
-      if (covered) running += b - pd;
-      if (b || pd) rows.push({ month: k, billed: b, paid: pd, covered: covered, running: running });
-      k = monthKeyShift(k, 1);
-    }
-    return { rows: rows, hasCard: hasCard, hasPay: hasPay, outstanding: running };
-  }
-
-  function fmtMonthKey(key) {
-    return monthNames[parseInt(key.slice(5, 7), 10) - 1].slice(0, 3).toLowerCase() + ' ' + key.slice(0, 4);
+  function allCardPurchasesSorted() {
+    var cardEntries = allEntries.filter(function (e) { return e.type === 'expense' && e.source === 'Kortimport'; });
+    if (!cardEntries.length) return false;
+    return cardEntries.every(function (e) { return !isUncategorized(e); });
   }
 
   function renderSettlementWarning() {
     var wrap = document.getElementById('settlementWrap');
-    var r = computeCardReconciliation();
-    if (!r) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+    var list = getSettlementEntries();
+    if (!list.length) {
+      wrap.style.display = 'none';
+      wrap.innerHTML = '';
+      return;
+    }
+    if (allCardPurchasesSorted()) {
+      list.forEach(function (e) { deleteEntry(e.id); });
+      wrap.style.display = 'none';
+      wrap.innerHTML = '';
+      setStatus('Alla kortköp är sorterade — kortavräkningen togs bort automatiskt.');
+      return;
+    }
     wrap.style.display = 'block';
-    var status, statusColor;
-    if (!r.hasCard) {
-      status = 'Kortköpen saknas — importera kortets kontoutdrag (välj "Kort" vid import)';
-      statusColor = 'var(--expense)';
-    } else if (Math.abs(r.outstanding) < 1) {
-      status = '✓ Stämmer — alla kortköp är betalda';
-      statusColor = 'var(--income)';
-    } else if (r.outstanding > 0) {
-      status = 'Kvar att betala: ' + fmtMoney(r.outstanding);
-      statusColor = 'var(--text-dim)';
-    } else {
-      status = 'Betalt mer än importerade köp: ' + fmtMoney(-r.outstanding) + ' — saknas kortköp?';
-      statusColor = 'var(--expense)';
-    }
-    var html = '<div class="card recon-card">' +
-      '<button type="button" class="recon-head"><span class="label" style="margin:0;">💳 Kortavstämning</span>' +
-      '<span class="recon-chev">' + (reconOpen ? '▾' : '▸') + '</span></button>' +
-      '<div class="recon-status" style="color:' + statusColor + ';">' + escapeHtml(status) + '</div>';
-    if (reconOpen) {
-      html += '<div class="settlement-hint">Betalningar till kortet räknas inte som utgifter — köpen från kortimporten gör det. ' +
-        'Varje månads betalning jämförs med kortköpen bokförda månaden innan.</div>' +
-        '<div class="recon-row recon-th"><span>Faktura</span><span>Kortköp</span><span>Betalt</span><span>Kvar</span></div>';
-      r.rows.slice().reverse().slice(0, 13).forEach(function (row) {
-        var kvar = row.covered ? (Math.abs(row.running) < 1 ? '✓' : fmtMoney(row.running)) : '–';
-        html += '<div class="recon-row"><span>' + fmtMonthKey(row.month) + '</span>' +
-          '<span>' + (row.covered ? fmtMoney(row.billed) : 'ej importerat') + '</span>' +
-          '<span>' + (row.paid ? fmtMoney(row.paid) : '–') + '</span>' +
-          '<span class="' + (row.covered && Math.abs(row.running) >= 1 ? 'recon-diff' : '') + '">' + kvar + '</span></div>';
-      });
-    }
-    html += '</div>';
+    var total = list.reduce(function (s, e) { return s + (Number(e.amount) || 0); }, 0);
+    var html = '<div class="card settlement-card">' +
+      '<div class="label">⚠️ Möjlig dubbelräkning (' + list.length + ')</div>' +
+      '<div class="settlement-hint">Det här är kortavräkningar från banken, inte enskilda köp. Om du importerar kortets egna kontoutdrag och kategoriserar alla köpen där, försvinner raderna nedan automatiskt. Fram tills dess kan du ta bort dem manuellt.</div>';
+    list.forEach(function (e, i) {
+      html += '<div class="settlement-row" data-i="' + i + '"><div class="settlement-meta"></div><button type="button" class="settlement-del">Ta bort</button></div>';
+    });
+    html += '<button type="button" class="settlement-del-all">Ta bort alla (' + fmtMoney(total) + ')</button></div>';
     wrap.innerHTML = html;
-    wrap.querySelector('.recon-head').addEventListener('click', function () {
-      reconOpen = !reconOpen;
-      renderSettlementWarning();
+    wrap.querySelectorAll('.settlement-row').forEach(function (row) {
+      var e = list[parseInt(row.getAttribute('data-i'), 10)];
+      row.querySelector('.settlement-meta').textContent = e.note + ' · ' + fmtDateStrShort(e.date) + ' · ' + fmtMoney(Number(e.amount) || 0);
+      row.querySelector('.settlement-del').addEventListener('click', function () {
+        deleteEntry(e.id);
+      });
+    });
+    wrap.querySelector('.settlement-del-all').addEventListener('click', function () {
+      list.forEach(function (e) { deleteEntry(e.id); });
     });
   }
 
@@ -2366,7 +2461,6 @@
     var income = 0, expense = 0;
     var catTotals = {};
     entries.forEach(function (e) {
-      if (isTransfer(e)) return;
       var amt = Number(e.amount) || 0;
       if (e.type === 'income') { income += amt; }
       else {
@@ -2555,44 +2649,7 @@
     return html;
   }
 
-  var TRANSFER_CATEGORY = 'Kortbetalning';
-  var CARD_PAYMENT_NOTES = ['seb kort bank ab', 'swedbank kreditkort', 'nordea kort', 'handelsbanken kort', 'länsförsäkringar kort'];
-  function isCardPaymentNote(note) {
-    return !!note && CARD_PAYMENT_NOTES.indexOf(String(note).trim().toLowerCase()) !== -1;
-  }
-  // Kortbetalningar från bankkontot är överföringar till kortet, inte utgifter.
-  // Själva köpen kommer från kortimporten. De visas i listan men räknas aldrig i summor.
-  function isTransfer(e) {
-    if (!e) return false;
-    if (e.category === TRANSFER_CATEGORY) return true;
-    if (e.source === 'Kortimport' && /^betalt bg/i.test(String(e.note || '').trim())) return true;
-    if (e.type !== 'expense' || e.source === 'Kortimport' || !isCardPaymentNote(e.note) || !e.date) return false;
-    // Bara om kortköpen för fakturan (månaden innan) finns importerade — annars får betalningen
-    // fortsätta räknas som utgift så att äldre perioder inte ser billigare ut än de var.
-    var start = cardCoverageStart();
-    return !!start && e.date.slice(0, 7) >= start;
-  }
-  var _covCache = { n: -1, v: null };
-  function cardCoverageStart() {
-    if (_covCache.n === allEntries.length) return _covCache.v;
-    var min = null;
-    allEntries.forEach(function (e) {
-      if (e.source === 'Kortimport' && e.date && (!min || e.date < min)) min = e.date;
-    });
-    var v = null;
-    if (min) {
-      var y = parseInt(min.slice(0, 4), 10), m = parseInt(min.slice(5, 7), 10) + 1;
-      if (m > 12) { m = 1; y++; }
-      v = y + '-' + (m < 10 ? '0' : '') + m;
-    }
-    _covCache = { n: allEntries.length, v: v };
-    return v;
-  }
-  function countable(e) { return !isTransfer(e); }
-
   function isUncategorized(e) {
-    if (isTransfer(e)) return false;
-    if (e.type === 'expense' && isCardPaymentNote(e.note)) return false;
     return !e.category || e.category === 'Okategoriserat' || e.category === 'Okategoriserad';
   }
 
@@ -2603,12 +2660,7 @@
 
   function normalizeKey(note) {
     if (!note) return null;
-    var raw = String(note).trim();
-    // Rena nummer (kontonummer, Swish-nummer) är unika mottagare — gruppera på själva numret
-    // i stället för att strippa bort det och tappa nyckeln.
-    var digitsOnly = raw.replace(/[\s\-]/g, '');
-    if (/^\d{6,}$/.test(digitsOnly)) return 'nr:' + digitsOnly;
-    var k = raw.toLowerCase();
+    var k = note.toLowerCase();
     k = k.replace(/[0-9]+/g, ' ');
     k = k.replace(/[^a-zà-öø-ÿ\s]/gi, ' ');
     k = k.replace(/\s+/g, ' ').trim();
