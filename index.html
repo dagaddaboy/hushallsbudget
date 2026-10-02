@@ -1107,18 +1107,86 @@
     .wrap { max-width: 980px; }
     .hero-figure-value { font-size: 2.9rem; }
   }
+
+  /* ===== Nytt UI: app-skal med bottenmeny ===== */
+  body { padding-top: env(safe-area-inset-top, 0px); }
+  .appbar {
+    position: sticky; top: 0; z-index: 30;
+    display: flex; align-items: center; gap: 10px;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
+    margin-top: calc(-1 * env(safe-area-inset-top, 0px));
+    background: var(--surface); border-bottom: 1px solid var(--border);
+  }
+  .appbar-title { flex: 1; text-align: center; font-weight: 600; font-size: 1.05rem; padding-right: 54px; }
+  .round-btn {
+    width: 44px; height: 44px; border-radius: 50%; border: none; flex-shrink: 0;
+    background: var(--surface-2); color: var(--text);
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .round-btn:active { background: var(--border); }
+  .wrap { padding-top: 14px; padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
+  .tab-page[hidden] { display: none; }
+  .page-title { font-size: 1.4rem; font-weight: 600; margin: 4px 2px 14px; }
+  .hero { border-top: 1px solid var(--border); margin-bottom: 12px; }
+  .hero-figure { text-align: left; }
+  .hero-nav { justify-content: space-between; }
+  .import-cta {
+    width: 100%; height: 48px; margin-bottom: 12px; border: none; border-radius: 10px;
+    background: var(--accent); color: #fff; font: inherit; font-weight: 600; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+  }
+  .import-cta:active { opacity: .88; }
+  .card-block {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow); padding: 4px 16px 16px; margin-bottom: 12px;
+  }
+  .card-block .section-title { margin-top: 14px; }
+  .control-card .filter-row select, .control-card .search-row input { border-radius: 10px; }
+  .bottom-nav {
+    position: fixed; z-index: 40; left: 12px; right: 12px;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    max-width: 560px; margin: 0 auto; height: 66px; padding: 0 6px;
+    display: flex; align-items: center; justify-content: space-around;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 33px;
+    box-shadow: 0 6px 20px rgba(20,23,28,0.14);
+  }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    min-width: 56px; padding: 6px 10px; border: none; border-radius: 24px;
+    background: transparent; color: var(--text-dim); font: inherit; font-size: 0.72rem; font-weight: 600; cursor: pointer;
+  }
+  .nav-item.active { background: var(--accent-soft); color: var(--accent); }
+  .nav-add {
+    width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center;
+  }
+  .nav-add:active { opacity: .88; }
+  #addOverlay form.add { border: none; padding: 0; margin: 0; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .sheet-head h2 { margin: 0; }
+  @media (min-width: 700px) {
+    .appbar { padding-left: 40px; padding-right: 40px; }
+  }
 </style>
 </head>
 <body>
+<header class="appbar">
+  <button type="button" class="round-btn" id="hdrAdd" aria-label="Lägg till transaktion"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+  <button type="button" class="round-btn" id="hdrSearch" aria-label="Sök"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button>
+  <span class="appbar-title">Hushållsbudget</span>
+  <button type="button" class="round-btn" id="hdrImport" aria-label="Importera kontoutdrag"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg></button>
+</header>
 <div class="wrap">
-  <header class="topbar">
-    <span class="topbar-title">Hushållsbudget</span>
-    <span class="topbar-sub">Delad budget</span>
-  </header>
-  <div id="errorBanner" class="error-banner" style="display:none;"></div>
-
   <div class="view-tabs" id="viewTabs"></div>
+  <div id="errorBanner" class="error-banner" style="display:none;"></div>
+  <div class="toolbar-row" hidden>
+    <button type="button" class="toolbar-btn" id="openImport"><span class="toolbar-icon">⇪</span>Importera</button>
+    <button type="button" class="toolbar-btn" id="toggleTrend"><span class="toolbar-icon">📈</span>Trend</button>
+    <button type="button" class="toolbar-btn" id="toggleRecurring"><span class="toolbar-icon">🔁</span>Åter.</button>
+    <button type="button" class="toolbar-btn" id="toggleReport"><span class="toolbar-icon">📋</span>Rapport</button>
+  </div>
 
+  <div class="tab-page" data-page="hem">
   <section class="hero" id="heroCard">
     <div class="hero-nav">
       <button id="prevMonth" class="hero-nav-btn" aria-label="Föregående månad">‹</button>
@@ -1155,20 +1223,22 @@
     </div>
     <div id="heroBars"></div>
   </section>
-
   <div id="paydayNudge" class="payday-nudge" style="display:none;"></div>
-
-  <div class="toolbar-row">
-    <button type="button" class="toolbar-btn" id="openImport"><span class="toolbar-icon">⇪</span>Importera</button>
-    <button type="button" class="toolbar-btn" id="toggleTrend"><span class="toolbar-icon">📈</span>Trend</button>
-    <button type="button" class="toolbar-btn" id="toggleRecurring"><span class="toolbar-icon">🔁</span>Åter.</button>
-    <button type="button" class="toolbar-btn" id="toggleReport"><span class="toolbar-icon">📋</span>Rapport</button>
-  </div>
+  <button type="button" class="import-cta" id="homeImport"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>Importera kontoutdrag</button>
   <div class="import-status" id="importStatus"></div>
+  <div id="uncategorizedWrap" style="display:none;"></div>
+  <div id="settlementWrap" style="display:none;"></div>
+  <div class="card-block">
+    <div class="section-title">Utgifter per kategori</div>
+    <div class="breakdown" id="breakdown"></div>
+  </div>
+  </div>
 
+  <div class="tab-page" data-page="kop" hidden>
+  <h1 class="page-title">Transaktioner</h1>
   <div class="control-card">
     <div class="search-row">
-      <input type="text" id="searchInput" placeholder="🔍 Sök bland utgifter (butik, kategori, anteckning)…">
+      <input type="text" id="searchInput" placeholder="Sök butik, kategori eller anteckning">
     </div>
 
     <div class="filter-row">
@@ -1186,22 +1256,37 @@
       </select>
     </div>
   </div>
-
-  <div id="trendPanel" class="insight-panel" style="display:none;"></div>
-  <div id="recurringPanel" class="insight-panel" style="display:none;"></div>
-  <div id="reportPanel" class="insight-panel" style="display:none;"></div>
-
-  <div class="section-title">Utgifter per kategori</div>
-  <div class="breakdown" id="breakdown"></div>
-
   <div class="section-title collapsible" id="transactionsTitle"><span id="transactionsTitleText"></span><span class="chev" id="transactionsChev">▸</span></div>
   <div class="entry-list" id="entryList"></div>
   <div class="empty" id="emptyMsg" style="display:none;">Inga transaktioner ännu den här månaden.</div>
+  </div>
 
-  <div id="uncategorizedWrap" style="display:none;"></div>
-  <div id="settlementWrap" style="display:none;"></div>
+  <div class="tab-page" data-page="trender" hidden>
+  <h1 class="page-title">Trender</h1>
+  <div id="trendPanel" class="insight-panel" style="display:none;"></div>
+  <div id="reportPanel" class="insight-panel" style="display:none;"></div>
+  </div>
 
-  <form class="add" id="addForm">
+  <div class="tab-page" data-page="aterkommande" hidden>
+  <h1 class="page-title">Återkommande</h1>
+  <div id="recurringPanel" class="insight-panel" style="display:none;"></div>
+  </div>
+
+  <div class="status" id="statusMsg"></div>
+</div>
+
+<nav class="bottom-nav" aria-label="Huvudmeny">
+  <button type="button" class="nav-item active" data-go="hem" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"></path></svg><span>Hem</span></button>
+  <button type="button" class="nav-item" data-go="kop"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg><span>Köp</span></button>
+  <button type="button" class="nav-add" id="navAdd" aria-label="Lägg till transaktion"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke-width="2.6"><path d="M12 5v14M5 12h14"></path></svg></button>
+  <button type="button" class="nav-item" data-go="trender"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg><span>Trender</span></button>
+  <button type="button" class="nav-item" data-go="aterkommande"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 11-2.3-5.7"></path><path d="M20 4v4h-4"></path></svg><span>Återk.</span></button>
+</nav>
+
+<div class="overlay" id="addOverlay" hidden>
+  <div class="panel">
+    <div class="sheet-head"><h2>Lägg till</h2><button type="button" class="round-btn" id="closeAdd" aria-label="Stäng"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+    <form class="add" id="addForm">
     <div class="toggle-row">
       <button type="button" data-type="income" id="btnIncome">Inkomst</button>
       <button type="button" data-type="expense" id="btnExpense" class="active">Utgift</button>
@@ -1223,8 +1308,7 @@
     </div>
     <button type="submit" class="submit-btn">Lägg till</button>
   </form>
-
-  <div class="status" id="statusMsg"></div>
+  </div>
 </div>
 
 <div class="overlay" id="importOverlay" hidden>
@@ -3509,6 +3593,60 @@
 
   render();
   initDb();
+})();
+</script>
+
+<script>
+(function () {
+  var pages = document.querySelectorAll('.tab-page');
+  var navs = document.querySelectorAll('.nav-item');
+  function go(name) {
+    pages.forEach(function (p) { p.hidden = p.getAttribute('data-page') !== name; });
+    navs.forEach(function (n) {
+      var on = n.getAttribute('data-go') === name;
+      n.classList.toggle('active', on);
+      if (on) n.setAttribute('aria-current', 'page'); else n.removeAttribute('aria-current');
+    });
+    try { sessionStorage.setItem('budgetTab', name); } catch (e) {}
+    window.scrollTo(0, 0);
+  }
+  navs.forEach(function (n) { n.addEventListener('click', function () { go(n.getAttribute('data-go')); }); });
+
+  // Öppna insiktspanelerna en gång så de alltid renderas i sina flikar
+  ['toggleTrend', 'toggleReport', 'toggleRecurring'].forEach(function (id) {
+    var b = document.getElementById(id); if (b) b.click();
+  });
+
+  var overlay = document.getElementById('addOverlay');
+  function openAdd() { overlay.hidden = false; setTimeout(function () { document.getElementById('amtInput').focus(); }, 50); }
+  function closeAdd() { overlay.hidden = true; }
+  document.getElementById('navAdd').addEventListener('click', openAdd);
+  document.getElementById('hdrAdd').addEventListener('click', openAdd);
+  document.getElementById('closeAdd').addEventListener('click', closeAdd);
+  overlay.addEventListener('click', function (ev) { if (ev.target === overlay) closeAdd(); });
+  document.getElementById('addForm').addEventListener('submit', function () {
+    setTimeout(function () { if (!document.getElementById('amtInput').value) closeAdd(); }, 60);
+  });
+
+  function openImport() { document.getElementById('openImport').click(); }
+  document.getElementById('hdrImport').addEventListener('click', openImport);
+  document.getElementById('homeImport').addEventListener('click', openImport);
+  document.getElementById('hdrSearch').addEventListener('click', function () {
+    go('kop'); setTimeout(function () { document.getElementById('searchInput').focus(); }, 50);
+  });
+
+  var nudge = document.getElementById('paydayNudge');
+  if (nudge) nudge.addEventListener('click', function () { go('trender'); });
+  navs.forEach(function (n) { if (n.getAttribute('data-go') === 'kop') n.addEventListener('click', expandTx); });
+  document.getElementById('hdrSearch').addEventListener('click', expandTx);
+  function expandTx() {
+    var chev = document.getElementById('transactionsChev');
+    if (chev && chev.textContent === '▸') document.getElementById('transactionsTitle').click();
+  }
+
+  var saved = null;
+  try { saved = sessionStorage.getItem('budgetTab'); } catch (e) {}
+  if (saved && document.querySelector('.tab-page[data-page="' + saved + '"]')) { go(saved); if (saved === 'kop') setTimeout(expandTx, 0); }
 })();
 </script>
 </body>
