@@ -521,6 +521,17 @@
     max-width: 88vw;
     text-align: center;
   }
+  .celebrate-toast.undo-toast {
+    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    display: flex; align-items: center; gap: 14px;
+    padding: 8px 8px 8px 20px;
+  }
+  .undo-toast span { white-space: nowrap; }
+  .undo-toast button {
+    border: none; border-radius: 999px; padding: 7px 14px;
+    background: var(--surface); color: var(--accent);
+    font: inherit; font-weight: 700; cursor: pointer;
+  }
   .celebrate-toast.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
@@ -1462,19 +1473,33 @@
     return learnedCategoryCache[key] || null;
   }
 
+  // Nyckelord matchas från ordets början. Korta nyckelord (≤ 4 tecken) måste vara hela ord,
+  // så att t.ex. "spa" inte träffar "Spar" och "sats" inte träffar "insats".
+  var keywordRegexCache = null;
+  var WORD_CHARS = 'a-z0-9åäöæøéèüß';
+  function keywordRegex(kw) {
+    if (keywordRegexCache[kw]) return keywordRegexCache[kw];
+    var esc = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var tail = kw.length <= 4 ? '(?![' + WORD_CHARS + '])' : '';
+    var re = new RegExp('(^|[^' + WORD_CHARS + '])' + esc + tail);
+    keywordRegexCache[kw] = re;
+    return re;
+  }
+
   function guessCategoryFromText(desc) {
     if (!desc) return null;
     var d = desc.toLowerCase();
+    if (!keywordRegexCache) keywordRegexCache = {};
     var rules = [
       [['ica', 'coop', 'willys', 'hemköp', 'lidl', 'city gross', 'mat.se'], 'Mat & Livsmedel'],
-      [['restaurang', 'café', 'kaffe', 'mcdonalds', 'max ', 'sushi', 'pizza', 'burger'], 'Restaurang & Café'],
+      [['restaurang', 'café', 'kaffe', 'mcdonalds', 'max', 'sushi', 'pizza', 'burger'], 'Restaurang & Café'],
       [['hyra', 'bostadsrätt', 'boende'], 'Boende/Hyra'],
       [['vattenfall', 'e.on', 'eon', 'fortum', 'elbolag', 'elnät'], 'El & Uppvärmning'],
-      [['sl ', 'sj ', 'västtrafik', 'skånetrafiken', 'parkering', 'buss', 'tåg'], 'Transport'],
+      [['sl', 'sj', 'västtrafik', 'skånetrafiken', 'parkering', 'buss', 'tåg'], 'Transport'],
       [['shell', 'okq8', 'preem', 'circle k', 'st1', 'bensin', 'diesel'], 'Drivmedel'],
-      [['hotel', 'hotell', 'booking.com', 'airbnb', 'ryanair', 'norwegian', 'sas ', 'flyg', 'sj-biljett', 'scandlines', 'flixbus'], 'Resor'],
+      [['hotel', 'hotell', 'booking.com', 'airbnb', 'ryanair', 'norwegian', 'sas', 'flyg', 'sj-biljett', 'scandlines', 'flixbus'], 'Resor'],
       [['clas ohlson', 'rusta', 'jula', 'biltema', 'byggmax', 'bauhaus', 'hornbach', 'blomsterland', 'k-rauta'], 'Hem & Underhåll'],
-      [['ikea', 'lagerhaus', 'hemtex', 'jysk', 'mio ', 'granit', 'søstrene grene', 'sostrene grene', 'rum21'], 'Hem & Inredning'],
+      [['ikea', 'lagerhaus', 'hemtex', 'jysk', 'mio', 'granit', 'søstrene grene', 'sostrene grene', 'rum21'], 'Hem & Inredning'],
       [['röda korset', 'roda korset', 'cancerfonden', 'unicef', 'läkare utan gränser', 'lakare utan granser', 'barncancerfonden', 'wwf', 'stadsmissionen', 'radiohjälpen', 'radiohjalpen', 'plan international', 'hjärt-lungfonden'], 'Välgörenhet'],
       [['frisör', 'frisor', 'hårvård', 'harvard', 'klippning', 'barber', 'salong', 'skönhet', 'skonhet', 'spa', 'massage', 'nagelsalong', 'nagel', 'hudvård', 'hudvard'], 'Personlig vård'],
       [['försäkring', 'folksam', 'trygg-hansa', 'if skade', 'länsförsäkringar'], 'Försäkring'],
@@ -1482,14 +1507,14 @@
       [['apotek', 'vårdcentral', 'tandläkare', 'sjukhus'], 'Hälsa & Sjukvård'],
       [['förskola', 'skola', 'barnomsorg'], 'Barn'],
       [['veterinär', 'djuraffär', 'agria'], 'Husdjur'],
-      [['bio', 'sf ', 'filmstaden', 'sats', 'gym', 'nöje', 'spotify', 'netflix', 'hbo', 'viaplay'], 'Nöje & Fritid'],
+      [['bio', 'biograf', 'sf', 'filmstaden', 'sats', 'gym', 'nöje', 'spotify', 'netflix', 'hbo', 'viaplay'], 'Nöje & Fritid'],
       [['prenumeration', 'abonnemang'], 'Prenumerationer'],
       [['lön', 'salary'], 'Lön']
     ];
     for (var i = 0; i < rules.length; i++) {
       var keywords = rules[i][0];
       for (var k = 0; k < keywords.length; k++) {
-        if (d.indexOf(keywords[k]) !== -1) return rules[i][1];
+        if (keywordRegex(keywords[k]).test(d)) return rules[i][1];
       }
     }
     return null;
@@ -1539,17 +1564,26 @@
     return fmtDateShort(first) + '–' + fmtDateStrShort(dates[dates.length - 1]);
   }
 
+  // Lönedatum per månad. Prioritet: kategori Lön > övrig inkomst (ej överföringar/bidrag) > valfri inkomst.
+  // Inom samma prioritet vinner största beloppet. Cachas tills nästa render.
+  var salaryDatesCache = null;
+  var NON_SALARY_INCOME = ['Från sparande', 'Delade räkningar'];
   function getSalaryDatesByMonth() {
+    if (salaryDatesCache) return salaryDatesCache;
     var map = {};
     allEntries.forEach(function (e) {
       if (e.type !== 'income' || !e.date) return;
       var d = new Date(e.date + 'T00:00:00');
+      if (isNaN(d.getTime())) return;
       var key = monthKey(d);
       var amt = Number(e.amount) || 0;
-      if (!map[key] || amt > map[key].amount) {
-        map[key] = { date: d, amount: amt };
+      var rank = e.category === 'Lön' ? 2 : (NON_SALARY_INCOME.indexOf(e.category) === -1 ? 1 : 0);
+      var cur = map[key];
+      if (!cur || rank > cur.rank || (rank === cur.rank && amt > cur.amount)) {
+        map[key] = { date: d, amount: amt, rank: rank };
       }
     });
+    salaryDatesCache = map;
     return map;
   }
 
@@ -1673,7 +1707,8 @@
     var html = tabs.map(function (t) {
       return '<button type="button" class="view-tab' + (filterPerson === t.value ? ' active' : '') + '" data-person="' + escapeHtml(t.value) + '">' + escapeHtml(t.label) + '</button>';
     }).join('');
-    if (wrap.innerHTML !== html) wrap.innerHTML = html;
+    if (wrap.innerHTML === html) return;
+    wrap.innerHTML = html;
     wrap.querySelectorAll('.view-tab').forEach(function (btn) {
       btn.addEventListener('click', function () {
         filterPerson = this.getAttribute('data-person');
@@ -2524,6 +2559,7 @@
   }
 
   function renderInner() {
+    salaryDatesCache = null;
     renderMonthLabel();
     renderPaydayNudge();
     renderUncategorizedSection();
@@ -2569,6 +2605,7 @@
 
     var list = document.getElementById('entryList');
     var emptyMsg = document.getElementById('emptyMsg');
+    var editDraft = captureEditDraft(list);
     list.innerHTML = '';
     if (transactionsCollapsed) {
       list.style.display = 'none';
@@ -2586,6 +2623,7 @@
         var row = renderEntryRow(e, recurringKeySet.has(normalizeKey(e.note)));
         list.appendChild(row);
       });
+      restoreEditDraft(list, editDraft);
     }
 
     var bd = document.getElementById('breakdown');
@@ -2622,6 +2660,42 @@
         el.style.display = 'block';
         el.textContent = '⚠ Ett fel uppstod när appen skulle visa datan: ' + (err && err.message ? err.message : String(err)) + '. Ta en skärmdump av det här meddelandet.';
       }
+    }
+  }
+
+  // Sparar det som skrivits i en öppen redigeringsrad så att en uppdatering från
+  // den andra telefonen (ny snapshot → omritning) inte nollställer fälten.
+  function captureEditDraft(list) {
+    if (!editingId) return null;
+    var row = list.querySelector('.entry.editing');
+    if (!row || row.getAttribute('data-id') !== editingId) return null;
+    var active = document.activeElement;
+    var focusCls = null;
+    ['edit-amount', 'edit-date', 'edit-note'].forEach(function (c) { if (active && active.classList && active.classList.contains(c) && row.contains(active)) focusCls = c; });
+    var typeBtn = row.querySelector('.edit-type-btn.active');
+    return {
+      id: editingId,
+      amount: row.querySelector('.edit-amount').value,
+      date: row.querySelector('.edit-date').value,
+      note: row.querySelector('.edit-note').value,
+      type: typeBtn ? typeBtn.getAttribute('data-type') : null,
+      focus: focusCls
+    };
+  }
+  function restoreEditDraft(list, draft) {
+    if (!draft || draft.id !== editingId) return;
+    var row = list.querySelector('.entry.editing');
+    if (!row || row.getAttribute('data-id') !== draft.id) return;
+    row.querySelector('.edit-amount').value = draft.amount;
+    row.querySelector('.edit-date').value = draft.date;
+    row.querySelector('.edit-note').value = draft.note;
+    if (draft.type) {
+      var btn = row.querySelector('.edit-type-btn[data-type="' + draft.type + '"]');
+      if (btn) btn.click();
+    }
+    if (draft.focus) {
+      var f = row.querySelector('.' + draft.focus);
+      if (f) f.focus({ preventScroll: true });
     }
   }
 
@@ -2864,21 +2938,30 @@
     });
   }
 
+  var BATCH_SIZE = 400; // Firestore tillåter max 500 skrivningar per batch
+
   async function applyCategoryToGroup(ids, category) {
     setStatus('Uppdaterar kategori…');
-    for (var i = 0; i < ids.length; i++) {
-      var id = ids[i];
-      try {
-        if (db) {
-          await db.doc('entries/' + id).update({ category: category });
-        } else {
-          var idx = allEntries.findIndex(function (e) { return e.id === id; });
-          if (idx >= 0) allEntries[idx].category = category;
-        }
-      } catch (e) { /* skip failed row */ }
+    if (!db) {
+      ids.forEach(function (id) {
+        var idx = allEntries.findIndex(function (e) { return e.id === id; });
+        if (idx >= 0) allEntries[idx].category = category;
+      });
+      setStatus(ids.length + (ids.length > 1 ? ' transaktioner' : ' transaktion') + ' satta till "' + category + '".');
+      render();
+      return;
     }
-    setStatus(ids.length + (ids.length > 1 ? ' transaktioner' : ' transaktion') + ' satta till "' + category + '".');
-    if (!db) render();
+    var ok = 0, failed = 0;
+    for (var start = 0; start < ids.length; start += BATCH_SIZE) {
+      var chunk = ids.slice(start, start + BATCH_SIZE);
+      var batch = db.batch();
+      chunk.forEach(function (id) { batch.update(db.doc('entries/' + id), { category: category }); });
+      try { await batch.commit(); ok += chunk.length; }
+      catch (e) { console.error('Kategoriuppdatering misslyckades:', e); failed += chunk.length; }
+    }
+    setStatus(failed
+      ? 'Kunde inte uppdatera ' + failed + ' av ' + ids.length + ' transaktioner. Försök igen.'
+      : ok + (ok > 1 ? ' transaktioner' : ' transaktion') + ' satta till "' + category + '".');
   }
 
   var clientId = 'c' + Date.now() + Math.random().toString(36).slice(2, 9);
@@ -2924,6 +3007,12 @@
     } catch (e) {
       db = null;
     }
+    if (db) {
+      // Lokal cache: snabbare start och appen fungerar utan täckning.
+      // Misslyckas tyst i webbläsare som inte stöder IndexedDB.
+      try { await db.enablePersistence({ synchronizeTabs: true }); }
+      catch (e) { console.warn('Offline-cache ej aktiverad:', e && e.code); }
+    }
     if (!db) {
       setStatus('Kunde inte ansluta till Firestore — kontrollera firebaseConfig.');
       return;
@@ -2944,6 +3033,9 @@
           console.error('Snapshot processing error:', mapErr);
         }
         render();
+      }, function (err) {
+        console.error('Snapshot error:', err);
+        setStatus('Tappade kontakten med databasen (' + (err && err.code ? err.code : 'okänt fel') + '). Ladda om sidan.');
       });
     } catch (e) {
       loadOnce();
@@ -2998,18 +3090,60 @@
     }
   }
 
+  var undoToastEl = null, undoTimer = null;
+
+  function showUndoToast(message, onUndo) {
+    if (undoToastEl) { undoToastEl.remove(); clearTimeout(undoTimer); }
+    var toast = document.createElement('div');
+    toast.className = 'celebrate-toast undo-toast';
+    toast.setAttribute('role', 'status');
+    var text = document.createElement('span');
+    text.textContent = message;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Ångra';
+    toast.appendChild(text);
+    toast.appendChild(btn);
+    document.body.appendChild(toast);
+    undoToastEl = toast;
+    requestAnimationFrame(function () { toast.classList.add('show'); });
+    function hide() {
+      toast.classList.remove('show');
+      setTimeout(function () { toast.remove(); }, 300);
+      if (undoToastEl === toast) undoToastEl = null;
+    }
+    btn.addEventListener('click', function () { clearTimeout(undoTimer); hide(); onUndo(); });
+    undoTimer = setTimeout(hide, 5000);
+  }
+
   async function deleteEntry(id) {
     if (!id) return;
+    var original = allEntries.find(function (e) { return e.id === id; });
+    if (!original) return;
+    var data = Object.assign({}, original);
+    delete data.id;
+    if (editingId === id) editingId = null;
     if (!db) {
       allEntries = allEntries.filter(function (e) { return e.id !== id; });
       render();
-      return;
+    } else {
+      try {
+        await db.doc('entries/' + id).delete();
+      } catch (e) {
+        setStatus('Kunde inte ta bort transaktionen.');
+        return;
+      }
     }
-    try {
-      await db.doc('entries/' + id).delete();
-    } catch (e) {
-      setStatus('Kunde inte ta bort transaktionen.');
-    }
+    showUndoToast('Transaktionen togs bort', async function () {
+      if (!db) {
+        allEntries.push(Object.assign({ id: id }, data));
+        render();
+      } else {
+        try { await db.doc('entries/' + id).set(data); }
+        catch (e) { setStatus('Kunde inte återställa transaktionen.'); return; }
+      }
+      setStatus('Transaktionen återställd.');
+    });
   }
 
   document.getElementById('btnIncome').addEventListener('click', function () { setType('income'); });
@@ -3187,6 +3321,7 @@
   var importSource = 'bank';
   var parsedCsv = null; // {headers, rows, delim}
   var skippedOldRowCount = 0;
+  var skippedBadDateCount = 0;
   var previewRows = [];
 
   function splitCsvLine(line, delim) {
@@ -3234,19 +3369,20 @@
     return parseFloat(s);
   }
 
+  // Returnerar YYYY-MM-DD, eller null om datumet inte går att tolka säkert.
+  // (Tidigare blev oläsbara datum dagens datum och hamnade tyst i aktuell period.)
   function normalizeDate(str) {
-    if (!str) return todayISO();
+    if (!str) return null;
     str = String(str).trim();
-    var m;
-    if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
-    if ((m = str.match(/^(\d{2})[\/\.](\d{2})[\/\.](\d{4})$/))) return m[3] + '-' + m[2] + '-' + m[1];
-    if ((m = str.match(/^(\d{4})(\d{2})(\d{2})$/))) return m[1] + '-' + m[2] + '-' + m[3];
-    var d = new Date(str);
-    if (!isNaN(d.getTime())) {
-      var tz = d.getTimezoneOffset() * 60000;
-      return new Date(d - tz).toISOString().slice(0, 10);
-    }
-    return todayISO();
+    var m, y, mo, da;
+    if ((m = str.match(/^(\d{4})[-\/\.](\d{1,2})[-\/\.](\d{1,2})/))) { y = m[1]; mo = m[2]; da = m[3]; }
+    else if ((m = str.match(/^(\d{1,2})[-\/\.](\d{1,2})[-\/\.](\d{4})$/))) { y = m[3]; mo = m[2]; da = m[1]; } // dag först (svenskt)
+    else if ((m = str.match(/^(\d{4})(\d{2})(\d{2})$/))) { y = m[1]; mo = m[2]; da = m[3]; }
+    else return null;
+    var iso = y + '-' + String(mo).padStart(2, '0') + '-' + String(da).padStart(2, '0');
+    var chk = new Date(iso + 'T00:00:00');
+    if (isNaN(chk.getTime()) || chk.getMonth() + 1 !== Number(mo) || chk.getDate() !== Number(da)) return null;
+    return iso;
   }
 
   function hashId(str) {
@@ -3452,6 +3588,8 @@
       return c.getFullYear() + '-' + String(c.getMonth() + 1).padStart(2, '0') + '-' + String(c.getDate()).padStart(2, '0');
     })();
     skippedOldRowCount = 0;
+    skippedBadDateCount = 0;
+    var seenKeys = {};
 
     return parsedCsv.rows.map(function (r) {
       var rawAmt = parseAmount(r[amtCol]);
@@ -3460,6 +3598,7 @@
       var type = signedAmt < 0 ? 'expense' : 'income';
       var amount = Math.abs(signedAmt);
       var date = normalizeDate(r[dateCol]);
+      if (!date) { skippedBadDateCount++; return null; }
       if (skipOld && date < oldCutoff) { skippedOldRowCount++; return null; }
       var desc = (r[descCol] || '').trim();
 
@@ -3472,7 +3611,12 @@
       var sourceLabel = importSource === 'card' ? 'Kortimport' : 'Bankimport';
       var owner = document.getElementById('importOwner').value.trim();
       var addedBy = owner || sourceLabel;
-      var id = hashId(sourceLabel + '|' + date + '|' + signedAmt.toFixed(2) + '|' + desc);
+      // Identiska rader (samma dag, belopp och text) får ett löpnummer så att ingen tappas.
+      // Första förekomsten behåller samma ID som tidigare, så redan importerad data känns igen.
+      var baseKey = sourceLabel + '|' + date + '|' + signedAmt.toFixed(2) + '|' + desc;
+      var occ = seenKeys[baseKey] || 0;
+      seenKeys[baseKey] = occ + 1;
+      var id = hashId(occ === 0 ? baseKey : baseKey + '|#' + occ);
       return { id: id, type: type, amount: amount, date: date, note: desc, category: category, addedBy: addedBy, source: sourceLabel, createdAt: Date.now() };
     }).filter(Boolean);
   }
@@ -3482,6 +3626,7 @@
     var note = document.getElementById('previewNote');
     note.textContent = previewRows.length + ' rader tolkade av ' + (parsedCsv ? parsedCsv.rows.length : 0) +
       (skippedOldRowCount > 0 ? ' (' + skippedOldRowCount + ' äldre än 13 månader hoppades över)' : '') +
+      (skippedBadDateCount > 0 ? '. ⚠ ' + skippedBadDateCount + ' rader hade ett datum som inte gick att tolka och hoppades över — kontrollera datumkolumnen' : '') +
       '. Kategori gissas automatiskt men går att ändra per rad nedan. Redan importerade transaktioner (samma datum/belopp/text) hoppas över och rörs inte.';
     var table = document.getElementById('previewTable');
     var html = '<thead><tr><th>Datum</th><th>Beskrivning</th><th>Kategori</th><th>Belopp</th></tr></thead><tbody>';
@@ -3520,8 +3665,9 @@
     btn.disabled = true;
     var okCount = 0;
     var skippedCount = 0;
+    var failedCount = 0;
     var quotaHit = false;
-    var CHUNK_SIZE = 25;
+    var CHUNK_SIZE = 100;
     var existingIds = {};
     allEntries.forEach(function (e) { existingIds[e.id] = true; });
     var rowsToWrite = previewRows.filter(function (row) {
@@ -3557,21 +3703,29 @@
       btn.textContent = 'Importerar… ' + pct + '%';
       progressBar.style.width = pct + '%';
       progressLabel.textContent = pct + '% (' + doneSoFar + '/' + total + ')';
-      var results = await Promise.all(chunk.map(function (row) {
-        var entry = { type: row.type, amount: row.amount, date: row.date, note: row.note, category: row.category, addedBy: row.addedBy, createdAt: row.createdAt };
-        if (db) {
-          return db.doc('entries/' + row.id).set(entry).then(function () { return { ok: true }; }).catch(function (e) { return { ok: false, code: e && e.code }; });
+      function toEntry(row) {
+        return { type: row.type, amount: row.amount, date: row.date, note: row.note, category: row.category, addedBy: row.addedBy, source: row.source, createdAt: row.createdAt };
+      }
+      if (db) {
+        var batch = db.batch();
+        chunk.forEach(function (row) { batch.set(db.doc('entries/' + row.id), toEntry(row)); });
+        try {
+          await batch.commit();
+          okCount += chunk.length;
+        } catch (e) {
+          console.error('Import-batch misslyckades:', e);
+          failedCount += chunk.length;
+          if (e && e.code === 'resource-exhausted') { quotaHit = true; break; }
         }
-        entry.id = row.id;
-        var idx = allEntries.findIndex(function (e) { return e.id === row.id; });
-        if (idx >= 0) allEntries[idx] = entry; else allEntries.push(entry);
-        return Promise.resolve({ ok: true });
-      }));
-      results.forEach(function (res) {
-        if (res.ok) okCount++;
-        if (res.code === 'quota_exceeded') quotaHit = true;
-      });
-      if (quotaHit) break;
+      } else {
+        chunk.forEach(function (row) {
+          var entry = toEntry(row);
+          entry.id = row.id;
+          var idx = allEntries.findIndex(function (e) { return e.id === row.id; });
+          if (idx >= 0) allEntries[idx] = entry; else allEntries.push(entry);
+          okCount++;
+        });
+      }
     }
 
     btn.disabled = false;
@@ -3579,9 +3733,10 @@
     progressWrap.style.display = 'none';
     closeImportPanel();
     setStatus(
-      quotaHit
-        ? okCount + ' nya importerade (databasen är full, 5000 poster max — resten fick inte plats). ' + skippedCount + ' fanns redan och rördes inte.'
-        : okCount + ' nya transaktioner importerade. ' + (skippedCount > 0 ? skippedCount + ' fanns redan och rördes inte (kategorier bevarade).' : '')
+      okCount + ' nya transaktioner importerade. ' +
+      (skippedCount > 0 ? skippedCount + ' fanns redan och rördes inte (kategorier bevarade). ' : '') +
+      (quotaHit ? 'Firestores dagskvot för skrivningar är slut — importera resten imorgon (redan importerade rader hoppas över). ' :
+        failedCount > 0 ? failedCount + ' kunde inte sparas — importera filen igen (redan importerade rader hoppas över).' : '')
     );
     if (!db) render();
     if (okCount > 0) {
