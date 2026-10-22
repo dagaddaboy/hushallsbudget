@@ -1175,6 +1175,7 @@
   .round-btn:active { background: var(--border); }
   .wrap { padding-top: 14px; padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
   .tab-page[hidden] { display: none; }
+  .toolbar-row[hidden] { display: none; }
   .page-title { font-size: 1.4rem; font-weight: 600; margin: 4px 2px 14px; }
   .hero { border-top: 1px solid var(--border); margin-bottom: 12px; }
   .hero-figure { text-align: left; }
@@ -2000,7 +2001,7 @@
     entries.forEach(function (e) {
       if (e.type !== 'expense' || isTransfer(e)) return;
       var amt = Number(e.amount) || 0;
-      var cat = isUncategorized(e) ? null : e.category;
+      var cat = displayCategory(e);
       if (!cat) { uncatCount++; uncatAmount += amt; }
       else catTotals[cat] = (catTotals[cat] || 0) + amt;
       if (!biggest || amt > biggest.amount) biggest = e;
@@ -2673,7 +2674,7 @@
       if (e.type === 'income') { income += amt; }
       else {
         expense += amt;
-        var c = isUncategorized(e) ? 'Okategoriserad' : e.category;
+        var c = displayCategory(e) || 'Okategoriserad';
         catTotals[c] = (catTotals[c] || 0) + amt;
       }
     });
@@ -2863,16 +2864,22 @@
     return row;
   }
 
-  async function saveEntryEdit(id, fields) {
-    try {
-      if (db) await db.doc('entries/' + id).update(fields);
-      var idx = allEntries.findIndex(function (e) { return e.id === id; });
-      if (idx >= 0) Object.assign(allEntries[idx], fields);
-      editingId = null;
-      setStatus('Transaktionen uppdaterad.');
-      render();
-    } catch (err) {
-      setStatus('Kunde inte spara ändringen.');
+  function saveEntryEdit(id, fields) {
+    // Uppdatera lokalt direkt. Firestore köar skrivningen och synkar när det finns täckning,
+    // så formuläret ska inte vänta på svar från servern.
+    var idx = allEntries.findIndex(function (e) { return e.id === id; });
+    var before = idx >= 0 ? Object.assign({}, allEntries[idx]) : null;
+    if (idx >= 0) Object.assign(allEntries[idx], fields);
+    editingId = null;
+    setStatus('Transaktionen uppdaterad.');
+    render();
+    if (db) {
+      db.doc('entries/' + id).update(fields).catch(function (err) {
+        console.error('Uppdatering misslyckades:', err);
+        var i = allEntries.findIndex(function (e) { return e.id === id; });
+        if (i >= 0 && before) { allEntries[i] = before; render(); }
+        setStatus('Kunde inte spara ändringen.');
+      });
     }
   }
 
@@ -2929,6 +2936,13 @@
     return v;
   }
   function countable(e) { return !isTransfer(e); }
+  // Kategorinamn för summeringar. Kortfakturor som inte kan stämmas av (kortköpen saknas)
+  // räknas som utgift under "Kortfaktura" i stället för ett tomt kategorinamn.
+  function displayCategory(e) {
+    if (isUncategorized(e)) return null;
+    if (e.category) return e.category;
+    return isCardPaymentNote(e.note) ? 'Kortfaktura' : null;
+  }
 
   function isUncategorized(e) {
     if (isTransfer(e)) return false;
@@ -3158,6 +3172,9 @@
             var data = d.data ? d.data() : d;
             return Object.assign({ id: d.id || data.id }, data);
           });
+          // Kategorier kan ändras utan att antalet ändras — bygg om inlärda gissningar och korttäckning.
+          learnedCategoryCache = null;
+          _covCache = { n: -1, v: null };
         } catch (mapErr) {
           console.error('Snapshot processing error:', mapErr);
         }
@@ -3743,11 +3760,15 @@
       var addedBy = owner || sourceLabel;
       // Identiska rader (samma dag, belopp och text) får ett löpnummer så att ingen tappas.
       // Första förekomsten behåller samma ID som tidigare, så redan importerad data känns igen.
-      var baseKey = sourceLabel + '|' + date + '|' + signedAmt.toFixed(2) + '|' + desc;
+      // ID:t innehåller vem som importerade, så att du och Linda kan ha identiska rader samma dag.
+      // legacyId är det gamla formatet (utan person) och används bara för att känna igen redan importerat.
+      var legacyKey = sourceLabel + '|' + date + '|' + signedAmt.toFixed(2) + '|' + desc;
+      var baseKey = legacyKey + '|' + addedBy;
       var occ = seenKeys[baseKey] || 0;
       seenKeys[baseKey] = occ + 1;
       var id = hashId(occ === 0 ? baseKey : baseKey + '|#' + occ);
-      return { id: id, type: type, amount: amount, date: date, note: desc, category: category, addedBy: addedBy, source: sourceLabel, createdAt: Date.now() };
+      var legacyId = hashId(occ === 0 ? legacyKey : legacyKey + '|#' + occ);
+      return { id: id, legacyId: legacyId, type: type, amount: amount, date: date, note: desc, category: category, addedBy: addedBy, source: sourceLabel, createdAt: Date.now() };
     }).filter(Boolean);
   }
 
@@ -3798,10 +3819,15 @@
     var failedCount = 0;
     var quotaHit = false;
     var CHUNK_SIZE = 100;
-    var existingIds = {};
-    allEntries.forEach(function (e) { existingIds[e.id] = true; });
+    var existingById = {};
+    allEntries.forEach(function (e) { existingById[e.id] = e; });
     var rowsToWrite = previewRows.filter(function (row) {
-      if (existingIds[row.id]) { skippedCount++; return false; }
+      var legacy = existingById[row.legacyId];
+      // Gammal rad räknas som samma om personen stämmer, eller om någon av dem saknar person
+      // (addedBy är då "Bankimport"/"Kortimport").
+      var anon = function (who) { return !who || who === 'Bankimport' || who === 'Kortimport'; };
+      var legacyMatch = legacy && ((legacy.addedBy || '') === row.addedBy || anon(legacy.addedBy) || anon(row.addedBy));
+      if (existingById[row.id] || legacyMatch) { skippedCount++; return false; }
       return true;
     });
     var total = rowsToWrite.length;
